@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Plus, Search, Trash2, 
-  Mail, Phone, Building2, ChevronRight 
+  Mail, Phone, Building2, ChevronRight, User as UserIcon 
 } from 'lucide-react';
 import { ClientStatus, ServiceType, UserRole } from '../types';
 import { STATUS_COLORS } from '../constants';
@@ -18,6 +18,7 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
     serviceType: ServiceType.SITE,
     contractValue: 0,
     status: ClientStatus.PROSPECT,
+    responsibleId: store.currentUser.id,
     notes: ''
   });
 
@@ -31,16 +32,31 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Encontrar o nome do vendedor selecionado para salvar no registro do cliente
+    const selectedSeller = store.users.find((u: any) => u.id === formData.responsibleId);
+    
     store.addClient({
-      ...formData,
-      responsibleId: store.currentUser.id,
-      responsibleName: store.currentUser.name
+      name: formData.name,
+      company: formData.company,
+      phone: formData.phone,
+      email: formData.email,
+      segment: formData.segment,
+      serviceType: formData.serviceType,
+      contractValue: formData.contractValue,
+      status: formData.status,
+      notes: formData.notes,
+      responsibleId: formData.responsibleId,
+      responsibleName: selectedSeller?.name || store.currentUser.name
     });
+
     setShowModal(false);
     setFormData({
       name: '', company: '', phone: '', email: '', 
       segment: '', serviceType: ServiceType.SITE, 
-      contractValue: 0, status: ClientStatus.PROSPECT, notes: ''
+      contractValue: 0, status: ClientStatus.PROSPECT, 
+      responsibleId: store.currentUser.id,
+      notes: ''
     });
   };
 
@@ -76,9 +92,7 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Serviço</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Valor</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                {store.currentUser.role === UserRole.ADMIN && (
-                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Responsável</th>
-                )}
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Responsável</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Ações</th>
               </tr>
             </thead>
@@ -118,11 +132,11 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
                       {client.status}
                     </span>
                   </td>
-                  {store.currentUser.role === UserRole.ADMIN && (
-                    <td className="px-6 py-4">
-                      <p className="text-xs text-slate-400">{client.responsibleName}</p>
-                    </td>
-                  )}
+                  <td className="px-6 py-4">
+                    <p className="text-xs text-slate-400 flex items-center gap-1">
+                      <UserIcon size={12} className="text-blue-500/50" /> {client.responsibleName}
+                    </p>
+                  </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
                        {store.currentUser.role === UserRole.ADMIN && (
@@ -200,14 +214,22 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Segmento</label>
-                  <input 
-                    type="text" 
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
-                    value={formData.segment}
-                    onChange={(e) => setFormData({...formData, segment: e.target.value})}
-                  />
+                <div className="space-y-1 md:col-span-2">
+                  <label className="text-xs font-bold text-blue-400 uppercase flex items-center gap-1">
+                    <UserIcon size={12} /> Vendedor Responsável
+                  </label>
+                  <select 
+                    required
+                    className="w-full bg-slate-800 border border-blue-500/30 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
+                    value={formData.responsibleId}
+                    onChange={(e) => setFormData({...formData, responsibleId: e.target.value})}
+                  >
+                    {store.users.map((user: any) => (
+                      <option key={user.id} value={user.id}>
+                        {user.name} ({user.role})
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Tipo de Serviço</label>
@@ -241,6 +263,15 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
                     <option value={ClientStatus.CLOSED}>Fechado</option>
                     <option value={ClientStatus.LOST}>Perdido</option>
                   </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-500 uppercase">Segmento</label>
+                  <input 
+                    type="text" 
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
+                    value={formData.segment}
+                    onChange={(e) => setFormData({...formData, segment: e.target.value})}
+                  />
                 </div>
               </div>
               <div className="space-y-1">
