@@ -1,8 +1,7 @@
-
 import React, { useEffect, useState } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  LineChart, Line, AreaChart, Area, Cell, PieChart, Pie
+  AreaChart, Area, Cell
 } from 'recharts';
 import { 
   TrendingUp, Users, CalendarCheck, CheckCircle, 
@@ -29,7 +28,6 @@ const Dashboard: React.FC<{ store: any }> = ({ store }) => {
     { label: 'Taxa Conversão', value: `${data.conversion.toFixed(1)}%`, icon: TrendingUp, color: 'text-amber-400' },
   ];
 
-  // Dummy Chart Data based on actual clients
   const revenueData = [
     { name: 'Semana 1', value: data.revenue * 0.2 },
     { name: 'Semana 2', value: data.revenue * 0.4 },
@@ -45,7 +43,6 @@ const Dashboard: React.FC<{ store: any }> = ({ store }) => {
 
   return (
     <div className="space-y-6">
-      {/* Motivational Banner */}
       <div className="bg-gradient-to-r from-blue-900/20 to-slate-900 border border-blue-500/20 p-4 rounded-xl flex items-center gap-4 animate-pulse">
         <Award className="text-blue-400" size={32} />
         <p className="text-blue-100 font-medium italic">{motivation}</p>
@@ -67,7 +64,6 @@ const Dashboard: React.FC<{ store: any }> = ({ store }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Goal Progress */}
         <div className="lg:col-span-1 bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col">
           <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
             <Target className="text-blue-400" size={20} />
@@ -110,7 +106,6 @@ const Dashboard: React.FC<{ store: any }> = ({ store }) => {
           </div>
         </div>
 
-        {/* Sales Chart */}
         <div className="lg:col-span-2 bg-slate-900 border border-slate-800 p-6 rounded-2xl">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -145,10 +140,8 @@ const Dashboard: React.FC<{ store: any }> = ({ store }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Pipeline Chart */}
         <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
           <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
-            {/* Fix: Added Kanban to imported icons and using it here */}
             <Kanban className="text-purple-400" size={20} />
             Funil de Vendas (Pipeline)
           </h3>
@@ -160,7 +153,7 @@ const Dashboard: React.FC<{ store: any }> = ({ store }) => {
                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#f8fafc', fontWeight: 'bold'}} />
                 <Tooltip cursor={{fill: '#1e293b'}} />
                 <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                  {pipelineData.map((entry, index) => (
+                  {pipelineData.map((_entry, index) => (
                     <Cell key={`cell-${index}`} fill={['#3b82f6', '#a855f7', '#10b981'][index % 3]} />
                   ))}
                 </Bar>
@@ -169,7 +162,6 @@ const Dashboard: React.FC<{ store: any }> = ({ store }) => {
           </div>
         </div>
 
-        {/* Performance Alert */}
         <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-10">
             <DollarSign size={120} className="text-blue-500" />

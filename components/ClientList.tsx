@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { 
-  Plus, Search, Filter, MoreVertical, Edit2, Trash2, 
-  Mail, Phone, Building2, Briefcase, ChevronRight 
+  Plus, Search, Trash2, 
+  Mail, Phone, Building2, ChevronRight 
 } from 'lucide-react';
 import { ClientStatus, ServiceType, UserRole } from '../types';
 import { STATUS_COLORS } from '../constants';
@@ -153,7 +152,6 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
         </div>
       </div>
 
-      {/* Modal Cadastro */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">

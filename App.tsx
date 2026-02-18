@@ -1,7 +1,6 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useStore } from './store';
-import { UserRole, ClientStatus } from './types';
+import { UserRole } from './types';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import ClientList from './components/ClientList';
@@ -10,7 +9,6 @@ import Ranking from './components/Ranking';
 import Login from './components/Login';
 import GoalsHistory from './components/GoalsHistory';
 import Agenda from './components/Agenda';
-import { Layout } from 'lucide-react';
 
 const App: React.FC = () => {
   const store = useStore();

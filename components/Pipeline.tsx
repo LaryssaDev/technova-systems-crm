@@ -1,8 +1,6 @@
-
 import React from 'react';
 import { ClientStatus, UserRole } from '../types';
-import { STATUS_COLORS } from '../constants';
-import { MoreVertical, GripVertical, Building2, User } from 'lucide-react';
+import { Building2, User } from 'lucide-react';
 
 const Pipeline: React.FC<{ store: any }> = ({ store }) => {
   const columns = [
@@ -34,11 +32,6 @@ const Pipeline: React.FC<{ store: any }> = ({ store }) => {
               <span className="bg-slate-800 text-slate-400 px-2 py-0.5 rounded text-[10px] font-bold">
                 {getClientsByStatus(col.id).length}
               </span>
-            </div>
-            <div className="flex gap-1">
-              <div className="w-1 h-1 rounded-full bg-slate-700"></div>
-              <div className="w-1 h-1 rounded-full bg-slate-700"></div>
-              <div className="w-1 h-1 rounded-full bg-slate-700"></div>
             </div>
           </div>
 

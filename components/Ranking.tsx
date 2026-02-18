@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { UserRole, ClientStatus } from '../types';
-import { Award, Trophy, Medal, Star } from 'lucide-react';
+import { Trophy, Medal, Star } from 'lucide-react';
 
 const Ranking: React.FC<{ store: any }> = ({ store }) => {
   const currentMonth = new Date().toISOString().slice(0, 7);
@@ -37,7 +36,6 @@ const Ranking: React.FC<{ store: any }> = ({ store }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end pb-8">
-        {/* 2nd Place */}
         {rankingData[1] && (
           <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col items-center gap-4 order-2 md:order-1 h-64 justify-center">
             <div className="relative">
@@ -56,7 +54,6 @@ const Ranking: React.FC<{ store: any }> = ({ store }) => {
           </div>
         )}
 
-        {/* 1st Place */}
         {rankingData[0] && (
           <div className="bg-slate-900 border-2 border-amber-500/50 p-8 rounded-2xl flex flex-col items-center gap-4 order-1 md:order-2 h-80 justify-center shadow-2xl shadow-amber-500/10">
             <div className="relative">
@@ -80,7 +77,6 @@ const Ranking: React.FC<{ store: any }> = ({ store }) => {
           </div>
         )}
 
-        {/* 3rd Place */}
         {rankingData[2] && (
           <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col items-center gap-4 order-3 h-56 justify-center">
             <div className="relative">
