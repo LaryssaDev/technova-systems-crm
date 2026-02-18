@@ -153,7 +153,7 @@ const Dashboard: React.FC<{ store: any }> = ({ store }) => {
                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#f8fafc', fontWeight: 'bold'}} />
                 <Tooltip cursor={{fill: '#1e293b'}} />
                 <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                  {pipelineData.map((_entry, index) => (
+                  {pipelineData.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={['#3b82f6', '#a855f7', '#10b981'][index % 3]} />
                   ))}
                 </Bar>

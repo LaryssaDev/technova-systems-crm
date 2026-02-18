@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Target, ArrowUp, ArrowDown, History } from 'lucide-react';
 
@@ -36,7 +35,7 @@ const GoalsHistory: React.FC<{ store: any }> = ({ store }) => {
         </h3>
         
         <div className="space-y-4">
-          {[...store.goals].reverse().map((goal: any, i: number) => {
+          {[...store.goals].reverse().map((goal: any) => {
             const revenue = store.clients
               .filter((c: any) => c.status === 'FECHADO' && c.createdAt.startsWith(goal.month))
               .reduce((acc: number, curr: any) => acc + curr.contractValue, 0);
