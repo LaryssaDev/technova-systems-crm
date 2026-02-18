@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Plus, Search, Trash2, 
@@ -22,9 +23,12 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
     notes: ''
   });
 
+  const isSeller = store.currentUser.role === UserRole.SELLER;
+  const isAdmin = store.currentUser.role === UserRole.ADMIN;
+  const isRH = store.currentUser.role === UserRole.RH;
+
   const filteredClients = store.clients.filter((c: any) => {
-    const isAdmin = store.currentUser.role === UserRole.ADMIN;
-    const matchesUser = isAdmin || c.responsibleId === store.currentUser.id;
+    const matchesUser = (isAdmin || isRH) || c.responsibleId === store.currentUser.id;
     const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           c.company.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesUser && matchesSearch;
@@ -32,8 +36,6 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Encontrar o nome do vendedor selecionado para salvar no registro do cliente
     const selectedSeller = store.users.find((u: any) => u.id === formData.responsibleId);
     
     store.addClient({
@@ -46,8 +48,8 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
       contractValue: formData.contractValue,
       status: formData.status,
       notes: formData.notes,
-      responsibleId: formData.responsibleId,
-      responsibleName: selectedSeller?.name || store.currentUser.name
+      responsibleId: isSeller ? store.currentUser.id : formData.responsibleId,
+      responsibleName: isSeller ? store.currentUser.name : (selectedSeller?.name || store.currentUser.name)
     });
 
     setShowModal(false);
@@ -93,12 +95,12 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Valor</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Responsável</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Ações</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right text-slate-400">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
               {filteredClients.map((client: any) => (
-                <tr key={client.id} className="hover:bg-slate-800/30 transition-colors">
+                <tr key={client.id} className="hover:bg-slate-800/30 transition-colors group">
                   <td className="px-6 py-4">
                     <div>
                       <p className="font-semibold text-white">{client.name}</p>
@@ -118,7 +120,7 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-xs font-medium px-2 py-1 bg-slate-800 rounded-md border border-slate-700">
+                    <span className="text-[10px] font-bold px-2 py-1 bg-slate-800 rounded-md border border-slate-700 uppercase tracking-widest text-slate-400">
                       {client.serviceType}
                     </span>
                   </td>
@@ -138,8 +140,8 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
                     </p>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                       {store.currentUser.role === UserRole.ADMIN && (
+                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                       {isAdmin && (
                          <button 
                            onClick={() => store.deleteClient(client.id)}
                            className="p-2 text-slate-500 hover:text-rose-400 transition-colors"
@@ -156,8 +158,8 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
               ))}
               {filteredClients.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500 italic">
-                    Nenhum cliente encontrado.
+                  <td colSpan={7} className="px-6 py-20 text-center text-slate-600 italic">
+                    Nenhum cliente disponível para exibição.
                   </td>
                 </tr>
               )}
@@ -167,136 +169,83 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-slate-800 flex justify-between items-center">
-              <h2 className="text-xl font-bold">Novo Cliente</h2>
-              <button onClick={() => setShowModal(false)} className="text-slate-500 hover:text-white">
-                <ChevronRight className="rotate-90" />
-              </button>
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900">
+              <h2 className="text-xl font-bold flex items-center gap-2"><Plus className="text-blue-500" /> Cadastrar Cliente</h2>
+              <button onClick={() => setShowModal(false)} className="text-slate-500 hover:text-white"><Plus className="rotate-45" /></button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-8 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Nome Completo</label>
-                  <input 
-                    required type="text" 
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  />
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nome Completo</label>
+                  <input required type="text" className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Empresa</label>
-                  <input 
-                    required type="text" 
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
-                    value={formData.company}
-                    onChange={(e) => setFormData({...formData, company: e.target.value})}
-                  />
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Empresa</label>
+                  <input required type="text" className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none" value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Email</label>
-                  <input 
-                    required type="email" 
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  />
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Email Corporativo</label>
+                  <input required type="email" className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Telefone</label>
-                  <input 
-                    required type="text" 
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  />
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">WhatsApp / Telefone</label>
+                  <input required type="text" className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
                 </div>
+                
                 <div className="space-y-1 md:col-span-2">
-                  <label className="text-xs font-bold text-blue-400 uppercase flex items-center gap-1">
-                    <UserIcon size={12} /> Vendedor Responsável
+                  <label className="text-[10px] font-bold text-blue-400 uppercase flex items-center gap-1 tracking-widest">
+                    <UserIcon size={12} /> Atribuição de Vendedor
                   </label>
                   <select 
-                    required
-                    className="w-full bg-slate-800 border border-blue-500/30 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
+                    disabled={isSeller}
+                    className="w-full bg-slate-800 border border-blue-500/20 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none disabled:opacity-50"
                     value={formData.responsibleId}
                     onChange={(e) => setFormData({...formData, responsibleId: e.target.value})}
                   >
-                    {store.users.map((user: any) => (
+                    {store.users.filter((u:any) => u.role === UserRole.SELLER || u.role === UserRole.ADMIN).map((user: any) => (
                       <option key={user.id} value={user.id}>
                         {user.name} ({user.role})
                       </option>
                     ))}
                   </select>
                 </div>
+
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Tipo de Serviço</label>
-                  <select 
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
-                    value={formData.serviceType}
-                    onChange={(e) => setFormData({...formData, serviceType: e.target.value as ServiceType})}
-                  >
-                    <option value={ServiceType.SITE}>Site</option>
-                    <option value={ServiceType.SYSTEM}>Sistema</option>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tipo de Serviço</label>
+                  <select className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none" value={formData.serviceType} onChange={(e) => setFormData({...formData, serviceType: e.target.value as ServiceType})}>
+                    <option value={ServiceType.SITE}>Site Institucional</option>
+                    <option value={ServiceType.SYSTEM}>Sistema Web Sob Medida</option>
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Valor do Contrato</label>
-                  <input 
-                    required type="number" 
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
-                    value={formData.contractValue}
-                    onChange={(e) => setFormData({...formData, contractValue: Number(e.target.value)})}
-                  />
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Valor Inicial (R$)</label>
+                  <input required type="number" className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none" value={formData.contractValue} onChange={(e) => setFormData({...formData, contractValue: Number(e.target.value)})} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Status Inicial</label>
-                  <select 
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
-                    value={formData.status}
-                    onChange={(e) => setFormData({...formData, status: e.target.value as ClientStatus})}
-                  >
-                    <option value={ClientStatus.PROSPECT}>Prospect</option>
-                    <option value={ClientStatus.MEETING}>Reunião</option>
-                    <option value={ClientStatus.CLOSED}>Fechado</option>
-                    <option value={ClientStatus.LOST}>Perdido</option>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status da Jornada</label>
+                  <select className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none" value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value as ClientStatus})}>
+                    <option value={ClientStatus.PROSPECT}>Prospecção</option>
+                    <option value={ClientStatus.MEETING}>Em Reunião</option>
+                    <option value={ClientStatus.CLOSED}>Fechado (Ganho)</option>
+                    <option value={ClientStatus.LOST}>Perdido (Lost)</option>
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Segmento</label>
-                  <input 
-                    type="text" 
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
-                    value={formData.segment}
-                    onChange={(e) => setFormData({...formData, segment: e.target.value})}
-                  />
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Segmento de Mercado</label>
+                  <input type="text" className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none" value={formData.segment} onChange={(e) => setFormData({...formData, segment: e.target.value})} />
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Observações</label>
-                <textarea 
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 min-h-[100px]"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                ></textarea>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Briefing Inicial / Notas</label>
+                <textarea className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none min-h-[100px]" value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} />
               </div>
 
               <div className="flex justify-end gap-3 pt-4">
-                <button 
-                  type="button" 
-                  onClick={() => setShowModal(false)}
-                  className="px-6 py-2 text-sm font-semibold text-slate-400 hover:text-white transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit"
-                  className="px-8 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition-all active:scale-95"
-                >
-                  Cadastrar Cliente
-                </button>
+                <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2 text-sm font-bold text-slate-400 hover:text-white transition-colors">Cancelar</button>
+                <button type="submit" className="px-10 py-3 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl transition-all shadow-lg shadow-blue-900/40">Efetivar Cadastro</button>
               </div>
             </form>
           </div>

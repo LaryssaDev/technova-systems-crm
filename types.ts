@@ -1,7 +1,9 @@
 
 export enum UserRole {
   ADMIN = 'ADMIN',
-  SELLER = 'SELLER'
+  SELLER = 'VENDEDOR',
+  RH = 'RH',
+  FINANCEIRO = 'FINANCEIRO'
 }
 
 export interface User {
@@ -34,7 +36,7 @@ export interface Client {
   serviceType: ServiceType;
   contractValue: number;
   status: ClientStatus;
-  responsibleId: string; // User ID
+  responsibleId: string;
   responsibleName: string;
   createdAt: string;
   notes: string;
@@ -49,11 +51,31 @@ export interface MonthlyGoal {
 
 export interface Meeting {
   id: string;
-  date: string;
-  time: string;
+  title: string;
+  company: string;
   clientId: string;
   clientName: string;
-  type: string;
   responsibleId: string;
   responsibleName: string;
+  date: string;
+  time: string;
+  notes: string;
+}
+
+export enum FinanceType {
+  INCOME = 'ENTRADA',
+  EXPENSE = 'SAÍDA'
+}
+
+export interface FinancialEntry {
+  id: string;
+  type: FinanceType;
+  description: string;
+  amount: number;
+  category: string;
+  paymentMethod: string;
+  date: string;
+  relatedClientId?: string;
+  responsibleId: string;
+  notes: string;
 }

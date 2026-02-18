@@ -17,6 +17,20 @@ export const INITIAL_USERS: User[] = [
     password: 'rafasilva2410'
   },
   {
+    id: 'rh_demo',
+    login: 'rh.tech',
+    name: 'RH TechNova',
+    role: UserRole.RH,
+    password: 'rh123'
+  },
+  {
+    id: 'fin_demo',
+    login: 'financeiro.tech',
+    name: 'Financeiro TechNova',
+    role: UserRole.FINANCEIRO,
+    password: 'fin123'
+  },
+  {
     id: 'vendedor1',
     login: 'vendedor.demo',
     name: 'Vendedor Exemplo',
@@ -31,3 +45,7 @@ export const STATUS_COLORS = {
   FECHADO: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   PERDIDO: 'bg-rose-500/10 text-rose-400 border-rose-500/20'
 };
+
+export const FINANCE_CATEGORIES = [
+  'Venda', 'Ferramenta', 'Marketing', 'Imposto', 'Comissão', 'Infraestrutura', 'Outros'
+];

@@ -1,15 +1,16 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { User, Client, MonthlyGoal, Meeting, ClientStatus, UserRole } from './types';
+import { User, Client, MonthlyGoal, Meeting, ClientStatus, UserRole, FinancialEntry, FinanceType } from './types';
 import { INITIAL_USERS } from './constants';
 
-const STORAGE_KEY = 'technova_crm_data';
+const STORAGE_KEY = 'technova_crm_data_v2_final';
 
 interface AppState {
   users: User[];
   clients: Client[];
   goals: MonthlyGoal[];
   meetings: Meeting[];
+  financialEntries: FinancialEntry[];
   currentUser: User | null;
 }
 
@@ -19,7 +20,7 @@ export const useStore = () => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        return { ...parsed, currentUser: null }; // Reset session on load
+        return { ...parsed, currentUser: null };
       } catch (e) {
         console.error("Failed to parse storage", e);
       }
@@ -29,6 +30,7 @@ export const useStore = () => {
       clients: [],
       goals: [{ month: new Date().toISOString().slice(0, 7), targetValue: 5000, reachedValue: 0, isCompleted: false }],
       meetings: [],
+      financialEntries: [],
       currentUser: null
     };
   });
@@ -42,7 +44,6 @@ export const useStore = () => {
     saveToStorage(state);
   }, [state, saveToStorage]);
 
-  // Auth logic
   const login = (loginStr: string, pass: string) => {
     const user = state.users.find(u => u.login === loginStr && u.password === pass);
     if (user) {
@@ -56,25 +57,49 @@ export const useStore = () => {
     setState(prev => ({ ...prev, currentUser: null }));
   };
 
-  // Client Logic
+  const addUser = (user: Omit<User, 'id'>) => {
+    const newUser = { ...user, id: crypto.randomUUID() };
+    setState(prev => ({ ...prev, users: [...prev.users, newUser] }));
+  };
+
+  const deleteUser = (id: string) => {
+    setState(prev => ({ ...prev, users: prev.users.filter(u => u.id !== id) }));
+  };
+
   const addClient = (client: Omit<Client, 'id' | 'createdAt'>) => {
     const newClient: Client = {
       ...client,
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString()
     };
-    setState(prev => {
-      const updatedClients = [...prev.clients, newClient];
-      return { ...prev, clients: updatedClients };
-    });
+    setState(prev => ({ ...prev, clients: [...prev.clients, newClient] }));
   };
 
   const updateClientStatus = (clientId: string, status: ClientStatus) => {
     setState(prev => {
+      const client = prev.clients.find(c => c.id === clientId);
+      if (!client) return prev;
+
+      const newEntries = [...prev.financialEntries];
+      if (status === ClientStatus.CLOSED && client.status !== ClientStatus.CLOSED) {
+        newEntries.push({
+          id: crypto.randomUUID(),
+          type: FinanceType.INCOME,
+          description: `Venda Efetivada: ${client.company}`,
+          amount: client.contractValue,
+          category: 'Venda',
+          paymentMethod: 'A definir',
+          date: new Date().toISOString().split('T')[0],
+          relatedClientId: client.id,
+          responsibleId: client.responsibleId,
+          notes: `Lançamento automático de venda.`
+        });
+      }
+
       const updatedClients = prev.clients.map(c => 
         c.id === clientId ? { ...c, status } : c
       );
-      return { ...prev, clients: updatedClients };
+      return { ...prev, clients: updatedClients, financialEntries: newEntries };
     });
   };
 
@@ -86,55 +111,23 @@ export const useStore = () => {
     }));
   };
 
-  // Goal Auto-logic
-  const checkAndUpdateGoals = useCallback(() => {
-    const currentMonthStr = new Date().toISOString().slice(0, 7);
-    const existingGoal = state.goals.find(g => g.month === currentMonthStr);
+  const addFinancialEntry = (entry: Omit<FinancialEntry, 'id'>) => {
+    const newEntry = { ...entry, id: crypto.randomUUID() };
+    setState(prev => ({ ...prev, financialEntries: [...prev.financialEntries, newEntry] }));
+  };
 
-    if (!existingGoal) {
-      // Logic for new month
-      const lastMonth = new Date();
-      lastMonth.setMonth(lastMonth.getMonth() - 1);
-      const lastMonthStr = lastMonth.toISOString().slice(0, 7);
-      const prevGoal = state.goals.find(g => g.month === lastMonthStr);
+  const addMeeting = (meeting: Omit<Meeting, 'id'>) => {
+    const newMeeting = { ...meeting, id: crypto.randomUUID() };
+    setState(prev => ({ ...prev, meetings: [...prev.meetings, newMeeting] }));
+  };
 
-      let nextTarget = 5000;
-      if (prevGoal) {
-        const revenue = state.clients
-          .filter(c => c.status === ClientStatus.CLOSED && c.createdAt.startsWith(lastMonthStr))
-          .reduce((acc, curr) => acc + curr.contractValue, 0);
-        
-        if (revenue >= prevGoal.targetValue) {
-          nextTarget = prevGoal.targetValue * 1.5;
-        } else {
-          nextTarget = prevGoal.targetValue;
-        }
-      }
-
-      const newGoal: MonthlyGoal = {
-        month: currentMonthStr,
-        targetValue: nextTarget,
-        reachedValue: 0,
-        isCompleted: false
-      };
-
-      setState(prev => ({
-        ...prev,
-        goals: [...prev.goals, newGoal]
-      }));
-    }
-  }, [state.goals, state.clients]);
-
-  useEffect(() => {
-    checkAndUpdateGoals();
-  }, [checkAndUpdateGoals]);
-
-  // Derived Values
   const getDashboardData = () => {
     const currentMonth = new Date().toISOString().slice(0, 7);
-    const filteredClients = state.currentUser?.role === UserRole.ADMIN 
-      ? state.clients 
-      : state.clients.filter(c => c.responsibleId === state.currentUser?.id);
+    const user = state.currentUser;
+    
+    const filteredClients = (user?.role === UserRole.SELLER)
+      ? state.clients.filter(c => c.responsibleId === user.id)
+      : state.clients;
 
     const prospects = filteredClients.filter(c => c.status === ClientStatus.PROSPECT).length;
     const meetingsCount = filteredClients.filter(c => c.status === ClientStatus.MEETING).length;
@@ -145,7 +138,6 @@ export const useStore = () => {
       .reduce((acc, curr) => acc + curr.contractValue, 0);
 
     const goal = state.goals.find(g => g.month === currentMonth) || { targetValue: 5000 };
-    
     const conversion = prospects > 0 ? (closed / prospects) * 100 : 0;
     
     return {
@@ -164,9 +156,13 @@ export const useStore = () => {
     ...state,
     login,
     logout,
+    addUser,
+    deleteUser,
     addClient,
     updateClientStatus,
     deleteClient,
+    addFinancialEntry,
+    addMeeting,
     getDashboardData
   };
 };
