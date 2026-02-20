@@ -72,7 +72,25 @@ export const useStore = () => {
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString()
     };
-    setState(prev => ({ ...prev, clients: [...prev.clients, newClient] }));
+    
+    setState(prev => {
+      const newEntries = [...prev.financialEntries];
+      if (newClient.status === ClientStatus.CLOSED) {
+        newEntries.push({
+          id: crypto.randomUUID(),
+          type: FinanceType.INCOME,
+          description: `Venda Efetivada: ${newClient.company}`,
+          amount: newClient.contractValue,
+          category: 'Venda',
+          paymentMethod: 'A definir',
+          date: new Date().toISOString().split('T')[0],
+          relatedClientId: newClient.id,
+          responsibleId: newClient.responsibleId,
+          notes: `Lançamento automático de venda.`
+        });
+      }
+      return { ...prev, clients: [...prev.clients, newClient], financialEntries: newEntries };
+    });
   };
 
   const updateClientStatus = (clientId: string, status: ClientStatus) => {
@@ -80,7 +98,8 @@ export const useStore = () => {
       const client = prev.clients.find(c => c.id === clientId);
       if (!client) return prev;
 
-      const newEntries = [...prev.financialEntries];
+      let newEntries = [...prev.financialEntries];
+      
       if (status === ClientStatus.CLOSED && client.status !== ClientStatus.CLOSED) {
         newEntries.push({
           id: crypto.randomUUID(),
@@ -94,6 +113,8 @@ export const useStore = () => {
           responsibleId: client.responsibleId,
           notes: `Lançamento automático de venda.`
         });
+      } else if (status !== ClientStatus.CLOSED && client.status === ClientStatus.CLOSED) {
+        newEntries = newEntries.filter(e => e.relatedClientId !== clientId);
       }
 
       const updatedClients = prev.clients.map(c => 
@@ -103,11 +124,59 @@ export const useStore = () => {
     });
   };
 
+  const updateClient = (clientId: string, updatedData: Partial<Client>) => {
+    setState(prev => {
+      const client = prev.clients.find(c => c.id === clientId);
+      if (!client) return prev;
+
+      const newStatus = updatedData.status || client.status;
+      const newValue = updatedData.contractValue !== undefined ? updatedData.contractValue : client.contractValue;
+      
+      let newEntries = [...prev.financialEntries];
+
+      if (newStatus === ClientStatus.CLOSED && client.status !== ClientStatus.CLOSED) {
+        newEntries.push({
+          id: crypto.randomUUID(),
+          type: FinanceType.INCOME,
+          description: `Venda Efetivada: ${updatedData.company || client.company}`,
+          amount: newValue,
+          category: 'Venda',
+          paymentMethod: 'A definir',
+          date: new Date().toISOString().split('T')[0],
+          relatedClientId: client.id,
+          responsibleId: updatedData.responsibleId || client.responsibleId,
+          notes: `Lançamento automático de venda.`
+        });
+      } else if (newStatus !== ClientStatus.CLOSED && client.status === ClientStatus.CLOSED) {
+        newEntries = newEntries.filter(e => e.relatedClientId !== clientId);
+      } else if (newStatus === ClientStatus.CLOSED && client.status === ClientStatus.CLOSED) {
+        newEntries = newEntries.map(e => {
+          if (e.relatedClientId === clientId) {
+            return {
+              ...e,
+              amount: newValue,
+              description: `Venda Efetivada: ${updatedData.company || client.company}`,
+              responsibleId: updatedData.responsibleId || client.responsibleId
+            };
+          }
+          return e;
+        });
+      }
+
+      const updatedClients = prev.clients.map(c => 
+        c.id === clientId ? { ...c, ...updatedData } : c
+      );
+
+      return { ...prev, clients: updatedClients, financialEntries: newEntries };
+    });
+  };
+
   const deleteClient = (clientId: string) => {
     if (state.currentUser?.role !== UserRole.ADMIN) return;
     setState(prev => ({
       ...prev,
-      clients: prev.clients.filter(c => c.id !== clientId)
+      clients: prev.clients.filter(c => c.id !== clientId),
+      financialEntries: prev.financialEntries.filter(e => e.relatedClientId !== clientId)
     }));
   };
 
@@ -160,6 +229,7 @@ export const useStore = () => {
     deleteUser,
     addClient,
     updateClientStatus,
+    updateClient,
     deleteClient,
     addFinancialEntry,
     addMeeting,

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { 
-  Plus, Search, Trash2, 
+  Plus, Search, Trash2, Edit2,
   Mail, Phone, Building2, ChevronRight, User as UserIcon 
 } from 'lucide-react';
 import { ClientStatus, ServiceType, UserRole } from '../types';
@@ -11,6 +11,7 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
+    id: '',
     name: '',
     company: '',
     phone: '',
@@ -22,6 +23,34 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
     responsibleId: store.currentUser.id,
     notes: ''
   });
+
+  const resetForm = () => {
+    setFormData({
+      id: '',
+      name: '', company: '', phone: '', email: '', 
+      segment: '', serviceType: ServiceType.SITE, 
+      contractValue: 0, status: ClientStatus.PROSPECT, 
+      responsibleId: store.currentUser.id,
+      notes: ''
+    });
+  };
+
+  const handleEdit = (client: any) => {
+    setFormData({
+      id: client.id,
+      name: client.name,
+      company: client.company,
+      phone: client.phone,
+      email: client.email,
+      segment: client.segment,
+      serviceType: client.serviceType,
+      contractValue: client.contractValue,
+      status: client.status,
+      responsibleId: client.responsibleId,
+      notes: client.notes
+    });
+    setShowModal(true);
+  };
 
   const isSeller = store.currentUser.role === UserRole.SELLER;
   const isAdmin = store.currentUser.role === UserRole.ADMIN;
@@ -38,7 +67,7 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
     e.preventDefault();
     const selectedSeller = store.users.find((u: any) => u.id === formData.responsibleId);
     
-    store.addClient({
+    const clientData = {
       name: formData.name,
       company: formData.company,
       phone: formData.phone,
@@ -50,16 +79,16 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
       notes: formData.notes,
       responsibleId: isSeller ? store.currentUser.id : formData.responsibleId,
       responsibleName: isSeller ? store.currentUser.name : (selectedSeller?.name || store.currentUser.name)
-    });
+    };
+
+    if (formData.id) {
+      store.updateClient(formData.id, clientData);
+    } else {
+      store.addClient(clientData);
+    }
 
     setShowModal(false);
-    setFormData({
-      name: '', company: '', phone: '', email: '', 
-      segment: '', serviceType: ServiceType.SITE, 
-      contractValue: 0, status: ClientStatus.PROSPECT, 
-      responsibleId: store.currentUser.id,
-      notes: ''
-    });
+    resetForm();
   };
 
   return (
@@ -76,7 +105,7 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
           />
         </div>
         <button 
-          onClick={() => setShowModal(true)}
+          onClick={() => { resetForm(); setShowModal(true); }}
           className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-blue-500/20"
         >
           <Plus size={20} />
@@ -141,10 +170,18 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                       <button 
+                         onClick={() => handleEdit(client)}
+                         className="p-2 text-slate-500 hover:text-blue-400 transition-colors"
+                         title="Editar Cliente"
+                       >
+                         <Edit2 size={18} />
+                       </button>
                        {isAdmin && (
                          <button 
                            onClick={() => store.deleteClient(client.id)}
                            className="p-2 text-slate-500 hover:text-rose-400 transition-colors"
+                           title="Excluir Cliente"
                          >
                            <Trash2 size={18} />
                          </button>
@@ -172,7 +209,7 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900">
-              <h2 className="text-xl font-bold flex items-center gap-2"><Plus className="text-blue-500" /> Cadastrar Cliente</h2>
+              <h2 className="text-xl font-bold flex items-center gap-2"><Plus className="text-blue-500" /> {formData.id ? 'Editar Cliente' : 'Cadastrar Cliente'}</h2>
               <button onClick={() => setShowModal(false)} className="text-slate-500 hover:text-white"><Plus className="rotate-45" /></button>
             </div>
             
@@ -245,7 +282,9 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
 
               <div className="flex justify-end gap-3 pt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2 text-sm font-bold text-slate-400 hover:text-white transition-colors">Cancelar</button>
-                <button type="submit" className="px-10 py-3 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl transition-all shadow-lg shadow-blue-900/40">Efetivar Cadastro</button>
+                <button type="submit" className="px-10 py-3 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl transition-all shadow-lg shadow-blue-900/40">
+                  {formData.id ? 'Salvar Alterações' : 'Efetivar Cadastro'}
+                </button>
               </div>
             </form>
           </div>
