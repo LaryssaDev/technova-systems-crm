@@ -185,6 +185,13 @@ export const useStore = () => {
     setState(prev => ({ ...prev, financialEntries: [...prev.financialEntries, newEntry] }));
   };
 
+  const deleteFinancialEntry = (id: string) => {
+    setState(prev => ({
+      ...prev,
+      financialEntries: prev.financialEntries.filter(e => e.id !== id)
+    }));
+  };
+
   const addMeeting = (meeting: Omit<Meeting, 'id'>) => {
     const newMeeting = { ...meeting, id: crypto.randomUUID() };
     setState(prev => ({ ...prev, meetings: [...prev.meetings, newMeeting] }));
@@ -232,6 +239,7 @@ export const useStore = () => {
     updateClient,
     deleteClient,
     addFinancialEntry,
+    deleteFinancialEntry,
     addMeeting,
     getDashboardData
   };

@@ -1,12 +1,14 @@
 
 import React, { useState } from 'react';
-import { DollarSign, ArrowUpCircle, ArrowDownCircle, PieChart, Plus, X, Calendar, Briefcase, TrendingUp } from 'lucide-react';
+import { DollarSign, ArrowUpCircle, ArrowDownCircle, PieChart, Plus, X, Calendar, Briefcase, TrendingUp, Trash2, Search } from 'lucide-react';
 import { FinanceType, UserRole } from '../types';
 import { FINANCE_CATEGORIES } from '../constants';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const Finance: React.FC<{ store: any }> = ({ store }) => {
   const [showModal, setShowModal] = useState(false);
+  const [showAllMovements, setShowAllMovements] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     type: FinanceType.INCOME,
     description: '',
@@ -38,6 +40,10 @@ const Finance: React.FC<{ store: any }> = ({ store }) => {
     setShowModal(false);
     setFormData({ type: FinanceType.INCOME, description: '', amount: 0, category: 'Venda', paymentMethod: 'Pix', date: new Date().toISOString().split('T')[0], notes: '' });
   };
+
+  const filteredMovements = store.financialEntries
+    .filter((e: any) => e.description.toLowerCase().includes(searchTerm.toLowerCase()) || e.category.toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   if (store.currentUser.role === UserRole.RH) return null;
 
@@ -100,9 +106,17 @@ const Finance: React.FC<{ store: any }> = ({ store }) => {
         </div>
 
         <div className="bg-slate-900 border border-slate-800 p-8 rounded-[40px] flex flex-col">
-          <h3 className="text-lg font-bold mb-8">Movimentações Recentes</h3>
+          <div className="flex justify-between items-center mb-8">
+            <h3 className="text-lg font-bold">Movimentações Recentes</h3>
+            <button 
+              onClick={() => setShowAllMovements(true)}
+              className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors uppercase tracking-widest"
+            >
+              Ver Tudo
+            </button>
+          </div>
           <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-2">
-            {[...store.financialEntries].reverse().slice(0, 10).map((entry: any) => (
+            {[...store.financialEntries].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10).map((entry: any) => (
               <div key={entry.id} className="flex items-center justify-between p-5 bg-slate-800/20 border border-slate-800/50 rounded-2xl hover:bg-slate-800/40 transition-all group">
                 <div className="flex items-center gap-5">
                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${entry.type === FinanceType.INCOME ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
@@ -113,11 +127,20 @@ const Finance: React.FC<{ store: any }> = ({ store }) => {
                     <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-1">{entry.category} • {new Date(entry.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className={`font-black text-lg ${entry.type === FinanceType.INCOME ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    {entry.type === FinanceType.INCOME ? '+' : '-'} R$ {entry.amount.toLocaleString()}
-                  </p>
-                  <p className="text-[9px] text-slate-600 font-bold uppercase">{entry.paymentMethod}</p>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className={`font-black text-lg ${entry.type === FinanceType.INCOME ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {entry.type === FinanceType.INCOME ? '+' : '-'} R$ {entry.amount.toLocaleString()}
+                    </p>
+                    <p className="text-[9px] text-slate-600 font-bold uppercase">{entry.paymentMethod}</p>
+                  </div>
+                  <button 
+                    onClick={() => store.deleteFinancialEntry(entry.id)}
+                    className="p-2 text-slate-600 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
+                    title="Excluir Lançamento"
+                  >
+                    <Trash2 size={18} />
+                  </button>
                 </div>
               </div>
             ))}
@@ -128,9 +151,80 @@ const Finance: React.FC<{ store: any }> = ({ store }) => {
         </div>
       </div>
 
+      {showAllMovements && (
+        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-[100] flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-4xl h-[80vh] rounded-[40px] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
+            <div className="p-8 border-b border-slate-800 flex justify-between items-center bg-slate-900">
+              <div>
+                <h2 className="text-xl font-bold flex items-center gap-3"><TrendingUp className="text-blue-500" /> Todas as Movimentações</h2>
+                <p className="text-slate-500 text-xs mt-1">Gerencie o histórico completo de transações</p>
+              </div>
+              <button onClick={() => setShowAllMovements(false)} className="text-slate-500 hover:text-white transition-colors p-2 bg-slate-800 rounded-full"><X /></button>
+            </div>
+            
+            <div className="p-6 bg-slate-900/50 border-b border-slate-800">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                <input 
+                  type="text" 
+                  placeholder="Pesquisar por descrição ou categoria..." 
+                  className="w-full bg-slate-800 border border-slate-700 rounded-2xl pl-12 pr-6 py-4 text-sm focus:border-blue-500 outline-none transition-all"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 space-y-4 custom-scrollbar">
+              {filteredMovements.map((entry: any) => (
+                <div key={entry.id} className="flex items-center justify-between p-6 bg-slate-800/20 border border-slate-800/50 rounded-3xl hover:bg-slate-800/40 transition-all group">
+                  <div className="flex items-center gap-6">
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${entry.type === FinanceType.INCOME ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                      {entry.type === FinanceType.INCOME ? <ArrowUpCircle size={28} /> : <ArrowDownCircle size={28} />}
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-100 text-base tracking-tight">{entry.description}</p>
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest">{entry.category}</span>
+                        <span className="w-1 h-1 bg-slate-700 rounded-full"></span>
+                        <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest">{new Date(entry.date + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
+                        <span className="w-1 h-1 bg-slate-700 rounded-full"></span>
+                        <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest">{entry.paymentMethod}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-8">
+                    <p className={`font-black text-xl ${entry.type === FinanceType.INCOME ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {entry.type === FinanceType.INCOME ? '+' : '-'} R$ {entry.amount.toLocaleString()}
+                    </p>
+                    <button 
+                      onClick={() => {
+                        if(confirm('Tem certeza que deseja excluir este lançamento?')) {
+                          store.deleteFinancialEntry(entry.id);
+                        }
+                      }}
+                      className="p-3 text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all"
+                      title="Excluir Lançamento"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {filteredMovements.length === 0 && (
+                <div className="h-full flex flex-col items-center justify-center text-slate-600 space-y-4">
+                  <Search size={48} className="opacity-20" />
+                  <p className="italic">Nenhum lançamento encontrado para sua busca.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {showModal && (
         <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[100] flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-xl rounded-[40px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+          <div className="bg-slate-900 border border-slate-800 w-full max-xl rounded-[40px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
             <div className="p-8 border-b border-slate-800 flex justify-between items-center bg-slate-900">
               <h2 className="text-xl font-bold flex items-center gap-3"><Briefcase className="text-emerald-500" /> Registro Financeiro</h2>
               <button onClick={() => setShowModal(false)} className="text-slate-500 hover:text-white transition-colors"><X /></button>
@@ -175,3 +269,4 @@ const Finance: React.FC<{ store: any }> = ({ store }) => {
 };
 
 export default Finance;
+
