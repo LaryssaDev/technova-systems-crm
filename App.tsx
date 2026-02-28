@@ -90,6 +90,10 @@ const App: React.FC = () => {
           </div>
           <div className="flex items-center gap-4">
              <div className="bg-slate-900 border border-slate-800 px-4 py-2 rounded-lg flex items-center gap-3">
+                <div className="flex items-center gap-1.5 mr-2 pr-3 border-r border-slate-800">
+                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                   <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Sincronizado</span>
+                </div>
                 <div className={`w-2.5 h-2.5 rounded-full animate-pulse ${
                   store.currentUser.role === UserRole.ADMIN ? 'bg-blue-500' : 
                   store.currentUser.role === UserRole.SELLER ? 'bg-green-500' :

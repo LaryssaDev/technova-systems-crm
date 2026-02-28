@@ -18,6 +18,7 @@ const getInitialData = () => ({
   goals: [{ month: new Date().toISOString().slice(0, 7), targetValue: 5000, reachedValue: 0, isCompleted: false }],
   meetings: [],
   financialEntries: [],
+  fixedCosts: [],
 });
 
 async function startServer() {

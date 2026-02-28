@@ -105,10 +105,7 @@ export const useStore = () => {
       }
     };
 
-    // Avoid saving if it's just the initial empty state (optional but safer)
-    if (state.clients.length > 0 || state.financialEntries.length > 0 || state.users.length > INITIAL_USERS.length || state.fixedCosts.length > 0) {
-      saveState();
-    }
+    saveState();
   }, [state.users, state.clients, state.goals, state.meetings, state.financialEntries, state.fixedCosts, state.currentUser]);
 
   const login = (loginStr: string, pass: string) => {
@@ -312,6 +309,22 @@ export const useStore = () => {
     }));
   };
 
+  const updateGoal = (month: string, targetValue: number) => {
+    setState(prev => {
+      const existing = prev.goals.find(g => g.month === month);
+      if (existing) {
+        return {
+          ...prev,
+          goals: prev.goals.map(g => g.month === month ? { ...g, targetValue } : g)
+        };
+      }
+      return {
+        ...prev,
+        goals: [...prev.goals, { month, targetValue, reachedValue: 0, isCompleted: false }]
+      };
+    });
+  };
+
   const getDashboardData = () => {
     const currentMonth = new Date().toISOString().slice(0, 7);
     const user = state.currentUser;
@@ -359,6 +372,7 @@ export const useStore = () => {
     addFixedCost,
     updateFixedCostStatus,
     deleteFixedCost,
+    updateGoal,
     getDashboardData
   };
 };
