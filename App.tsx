@@ -12,6 +12,7 @@ import GoalsHistory from './components/GoalsHistory';
 import Agenda from './components/Agenda';
 import UserManager from './components/UserManager';
 import Finance from './components/Finance';
+import FixedCosts from './components/FixedCosts';
 
 const App: React.FC = () => {
   const store = useStore();
@@ -29,6 +30,7 @@ const App: React.FC = () => {
       ranking: [UserRole.ADMIN, UserRole.RH],
       agenda: [UserRole.ADMIN, UserRole.SELLER, UserRole.RH],
       users: [UserRole.ADMIN, UserRole.RH],
+      fixed_costs: [UserRole.ADMIN, UserRole.FINANCEIRO],
       finance: [UserRole.ADMIN, UserRole.FINANCEIRO],
     };
 
@@ -58,6 +60,8 @@ const App: React.FC = () => {
         return <Agenda store={store} />;
       case 'users':
         return <UserManager store={store} />;
+      case 'fixed_costs':
+        return <FixedCosts store={store} />;
       case 'finance':
         return <Finance store={store} />;
       default:
@@ -78,7 +82,9 @@ const App: React.FC = () => {
         <header className="mb-8 flex justify-between items-center bg-slate-900/50 p-6 rounded-2xl border border-slate-800/50 backdrop-blur-sm sticky top-0 z-40">
           <div>
             <h1 className="text-2xl font-bold text-white capitalize">
-              {activeTab === 'dashboard' ? 'Painel de Controle' : activeTab}
+              {activeTab === 'dashboard' ? 'Painel de Controle' : 
+               activeTab === 'fixed_costs' ? 'Custos Fixos Mensais' : 
+               activeTab}
             </h1>
             <p className="text-slate-400 text-sm italic">TechNova CRM v2.0 - Gestão Estratégica</p>
           </div>

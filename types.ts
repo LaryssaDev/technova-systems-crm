@@ -67,6 +67,21 @@ export enum FinanceType {
   EXPENSE = 'SAÍDA'
 }
 
+export enum FixedCostStatus {
+  PENDING = 'PENDENTE',
+  PAID = 'PAGO'
+}
+
+export interface FixedCost {
+  id: string;
+  description: string;
+  amount: number;
+  dueDate: string; // Day of month (1-31)
+  status: FixedCostStatus;
+  category: string;
+  lastPaidMonth?: string; // YYYY-MM to prevent double payment in same month
+}
+
 export interface FinancialEntry {
   id: string;
   type: FinanceType;

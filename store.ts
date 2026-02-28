@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { User, Client, MonthlyGoal, Meeting, ClientStatus, UserRole, FinancialEntry, FinanceType } from './types';
+import { User, Client, MonthlyGoal, Meeting, ClientStatus, UserRole, FinancialEntry, FinanceType, FixedCost, FixedCostStatus } from './types';
 import { INITIAL_USERS } from './constants';
 
 const STORAGE_KEY = 'technova_crm_data_v2_final';
@@ -11,38 +11,105 @@ interface AppState {
   goals: MonthlyGoal[];
   meetings: Meeting[];
   financialEntries: FinancialEntry[];
+  fixedCosts: FixedCost[];
   currentUser: User | null;
 }
 
 export const useStore = () => {
   const [state, setState] = useState<AppState>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
+    const savedUser = localStorage.getItem('technova_crm_user');
+    let currentUser = null;
+    if (savedUser) {
       try {
-        const parsed = JSON.parse(saved);
-        return { ...parsed, currentUser: null };
-      } catch (e) {
-        console.error("Failed to parse storage", e);
-      }
+        currentUser = JSON.parse(savedUser);
+      } catch (e) {}
     }
+
     return {
       users: INITIAL_USERS,
       clients: [],
       goals: [{ month: new Date().toISOString().slice(0, 7), targetValue: 5000, reachedValue: 0, isCompleted: false }],
       meetings: [],
       financialEntries: [],
-      currentUser: null
+      fixedCosts: [],
+      currentUser
     };
   });
 
-  const saveToStorage = useCallback((newState: AppState) => {
-    const { currentUser, ...persistentState } = newState;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(persistentState));
+  // Fetch state on mount
+  useEffect(() => {
+    const fetchState = async () => {
+      try {
+        const res = await fetch('/api/state');
+        if (res.ok) {
+          const data = await res.json();
+          
+          // Check for month change to reset fixed costs
+          const currentMonth = new Date().toISOString().slice(0, 7);
+          let updatedFixedCosts = data.fixedCosts || [];
+          let needsUpdate = false;
+
+          updatedFixedCosts = updatedFixedCosts.map((cost: FixedCost) => {
+            if (cost.lastPaidMonth !== currentMonth && cost.status === FixedCostStatus.PAID) {
+              needsUpdate = true;
+              return { ...cost, status: FixedCostStatus.PENDING };
+            }
+            return cost;
+          });
+
+          setState(prev => ({
+            ...prev,
+            ...data,
+            fixedCosts: updatedFixedCosts,
+            // If server has no users, keep INITIAL_USERS
+            users: data.users && data.users.length > 0 ? data.users : INITIAL_USERS
+          }));
+
+          if (needsUpdate) {
+            // Save the reset state back to server
+            const { currentUser, ...persistentState } = { ...data, fixedCosts: updatedFixedCosts };
+            await fetch('/api/state', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(persistentState)
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch state from server", e);
+      }
+    };
+    fetchState();
   }, []);
 
+  // Save state to server when it changes
   useEffect(() => {
-    saveToStorage(state);
-  }, [state, saveToStorage]);
+    const { currentUser, ...persistentState } = state;
+    
+    // Save currentUser to localStorage for session persistence
+    if (currentUser) {
+      localStorage.setItem('technova_crm_user', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('technova_crm_user');
+    }
+
+    const saveState = async () => {
+      try {
+        await fetch('/api/state', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(persistentState)
+        });
+      } catch (e) {
+        console.error("Failed to save state to server", e);
+      }
+    };
+
+    // Avoid saving if it's just the initial empty state (optional but safer)
+    if (state.clients.length > 0 || state.financialEntries.length > 0 || state.users.length > INITIAL_USERS.length || state.fixedCosts.length > 0) {
+      saveState();
+    }
+  }, [state.users, state.clients, state.goals, state.meetings, state.financialEntries, state.fixedCosts, state.currentUser]);
 
   const login = (loginStr: string, pass: string) => {
     const user = state.users.find(u => u.login === loginStr && u.password === pass);
@@ -197,6 +264,54 @@ export const useStore = () => {
     setState(prev => ({ ...prev, meetings: [...prev.meetings, newMeeting] }));
   };
 
+  const addFixedCost = (cost: Omit<FixedCost, 'id' | 'status'>) => {
+    const newCost: FixedCost = {
+      ...cost,
+      id: crypto.randomUUID(),
+      status: FixedCostStatus.PENDING
+    };
+    setState(prev => ({ ...prev, fixedCosts: [...prev.fixedCosts, newCost] }));
+  };
+
+  const updateFixedCostStatus = (id: string, status: FixedCostStatus) => {
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    
+    setState(prev => {
+      const cost = prev.fixedCosts.find(c => c.id === id);
+      if (!cost) return prev;
+
+      let newEntries = [...prev.financialEntries];
+      
+      if (status === FixedCostStatus.PAID && cost.status !== FixedCostStatus.PAID) {
+        // Add financial entry
+        newEntries.push({
+          id: crypto.randomUUID(),
+          type: FinanceType.EXPENSE,
+          description: `Custo Fixo: ${cost.description}`,
+          amount: cost.amount,
+          category: cost.category,
+          paymentMethod: 'A definir',
+          date: new Date().toISOString().split('T')[0],
+          responsibleId: prev.currentUser?.id || 'system',
+          notes: `Pagamento automático de custo fixo.`
+        });
+      }
+
+      const updatedFixedCosts = prev.fixedCosts.map(c => 
+        c.id === id ? { ...c, status, lastPaidMonth: status === FixedCostStatus.PAID ? currentMonth : c.lastPaidMonth } : c
+      );
+
+      return { ...prev, fixedCosts: updatedFixedCosts, financialEntries: newEntries };
+    });
+  };
+
+  const deleteFixedCost = (id: string) => {
+    setState(prev => ({
+      ...prev,
+      fixedCosts: prev.fixedCosts.filter(c => c.id !== id)
+    }));
+  };
+
   const getDashboardData = () => {
     const currentMonth = new Date().toISOString().slice(0, 7);
     const user = state.currentUser;
@@ -241,6 +356,9 @@ export const useStore = () => {
     addFinancialEntry,
     deleteFinancialEntry,
     addMeeting,
+    addFixedCost,
+    updateFixedCostStatus,
+    deleteFixedCost,
     getDashboardData
   };
 };
