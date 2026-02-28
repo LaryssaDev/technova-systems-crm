@@ -41,10 +41,15 @@ export const useStore = () => {
   // Fetch state on mount
   useEffect(() => {
     const fetchState = async () => {
+      console.log("Fetching initial state from server...");
       try {
-        const res = await fetch('/api/state');
+        const res = await fetch('/api/state', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
+          console.log("State fetched successfully", { 
+            clients: data.clients?.length,
+            entries: data.financialEntries?.length 
+          });
           
           // Check for month change to reset fixed costs
           const currentMonth = new Date().toISOString().slice(0, 7);
@@ -71,6 +76,7 @@ export const useStore = () => {
           setLoading(false);
 
           if (needsUpdate) {
+            console.log("Month change detected, resetting fixed costs...");
             // Save the reset state back to server
             const { currentUser, ...persistentState } = { ...data, fixedCosts: updatedFixedCosts };
             await fetch('/api/state', {
@@ -79,10 +85,17 @@ export const useStore = () => {
               body: JSON.stringify(persistentState)
             });
           }
+        } else {
+          console.error("Server returned error when fetching state", res.status);
+          // If server failed, we still want to allow the app to work, but we must be careful
+          // For now, let's assume if it's 404 or something, it's a fresh start
+          isLoaded.current = true;
+          setLoading(false);
         }
       } catch (e) {
         console.error("Failed to fetch state from server", e);
-      } finally {
+        // On network error, we don't set isLoaded to true to avoid overwriting data
+        // But we must stop loading so the user can see the error or retry
         setLoading(false);
       }
     };
@@ -101,20 +114,31 @@ export const useStore = () => {
     }
 
     const saveState = async () => {
-      if (!isLoaded.current) return;
+      if (!isLoaded.current) {
+        console.log("Save skipped: state not yet loaded from server");
+        return;
+      }
       
       try {
-        await fetch('/api/state', {
+        console.log("Saving state to server...");
+        const res = await fetch('/api/state', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(persistentState)
         });
+        if (!res.ok) {
+          console.error("Failed to save state: server returned", res.status);
+        } else {
+          console.log("State saved successfully");
+        }
       } catch (e) {
         console.error("Failed to save state to server", e);
       }
     };
 
-    saveState();
+    // Debounce saving to avoid too many requests
+    const timeoutId = setTimeout(saveState, 1000);
+    return () => clearTimeout(timeoutId);
   }, [state.users, state.clients, state.goals, state.meetings, state.financialEntries, state.fixedCosts, state.currentUser]);
 
   const login = (loginStr: string, pass: string) => {

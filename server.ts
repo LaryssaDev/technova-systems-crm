@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
+import { INITIAL_USERS } from "./constants.tsx";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,7 +14,7 @@ const DATA_FILE = path.join(__dirname, "data.json");
 
 // Initial data structure
 const getInitialData = () => ({
-  users: [], // Will be populated from constants if file doesn't exist
+  users: INITIAL_USERS,
   clients: [],
   goals: [{ month: new Date().toISOString().slice(0, 7), targetValue: 5000, reachedValue: 0, isCompleted: false }],
   meetings: [],
@@ -30,18 +31,39 @@ async function startServer() {
 
   // API Routes
   app.get("/api/state", (req, res) => {
+    console.log("GET /api/state - Fetching state");
     if (fs.existsSync(DATA_FILE)) {
-      const data = fs.readFileSync(DATA_FILE, "utf-8");
-      res.json(JSON.parse(data));
+      try {
+        const data = fs.readFileSync(DATA_FILE, "utf-8");
+        res.json(JSON.parse(data));
+      } catch (e) {
+        console.error("Error reading data file:", e);
+        res.status(500).json({ error: "Failed to read data" });
+      }
     } else {
+      console.log("Data file not found, returning initial data");
       res.json(getInitialData());
     }
   });
 
   app.post("/api/state", (req, res) => {
     const newState = req.body;
-    fs.writeFileSync(DATA_FILE, JSON.stringify(newState, null, 2));
-    res.json({ status: "ok" });
+    console.log("POST /api/state - Saving state", { 
+      clients: newState.clients?.length,
+      entries: newState.financialEntries?.length 
+    });
+
+    if (!newState || typeof newState !== 'object') {
+      return res.status(400).json({ error: "Invalid state data" });
+    }
+
+    try {
+      fs.writeFileSync(DATA_FILE, JSON.stringify(newState, null, 2));
+      res.json({ status: "ok" });
+    } catch (e) {
+      console.error("Error writing data file:", e);
+      res.status(500).json({ error: "Failed to save data" });
+    }
   });
 
   // Vite middleware for development
