@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { User, Client, MonthlyGoal, Meeting, ClientStatus, UserRole, FinancialEntry, FinanceType, FixedCost, FixedCostStatus } from './types';
 import { INITIAL_USERS } from './constants';
 
@@ -16,6 +16,8 @@ interface AppState {
 }
 
 export const useStore = () => {
+  const isLoaded = useRef(false);
+  const [loading, setLoading] = useState(true);
   const [state, setState] = useState<AppState>(() => {
     const savedUser = localStorage.getItem('technova_crm_user');
     let currentUser = null;
@@ -65,6 +67,9 @@ export const useStore = () => {
             users: data.users && data.users.length > 0 ? data.users : INITIAL_USERS
           }));
 
+          isLoaded.current = true;
+          setLoading(false);
+
           if (needsUpdate) {
             // Save the reset state back to server
             const { currentUser, ...persistentState } = { ...data, fixedCosts: updatedFixedCosts };
@@ -77,6 +82,8 @@ export const useStore = () => {
         }
       } catch (e) {
         console.error("Failed to fetch state from server", e);
+      } finally {
+        setLoading(false);
       }
     };
     fetchState();
@@ -94,6 +101,8 @@ export const useStore = () => {
     }
 
     const saveState = async () => {
+      if (!isLoaded.current) return;
+      
       try {
         await fetch('/api/state', {
           method: 'POST',
@@ -373,6 +382,7 @@ export const useStore = () => {
     updateFixedCostStatus,
     deleteFixedCost,
     updateGoal,
-    getDashboardData
+    getDashboardData,
+    loading
   };
 };

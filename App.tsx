@@ -40,6 +40,23 @@ const App: React.FC = () => {
     }
   }, [activeTab, store.currentUser]);
 
+  if (store.loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-6">
+        <div className="relative">
+          <div className="w-20 h-20 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-10 h-10 bg-blue-600/10 rounded-full animate-pulse"></div>
+          </div>
+        </div>
+        <div className="text-center space-y-2">
+          <h2 className="text-xl font-black text-white tracking-widest uppercase">TechNova CRM</h2>
+          <p className="text-slate-500 text-xs font-bold animate-pulse uppercase tracking-tighter">Sincronizando dados com o servidor...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!store.currentUser) {
     return <Login onLogin={store.login} />;
   }
