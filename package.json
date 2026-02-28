@@ -1,3 +1,5 @@
+npm install firebase
+
 {
   "name": "technova-crm",
   "private": true,
