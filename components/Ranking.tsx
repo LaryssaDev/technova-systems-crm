@@ -20,14 +20,14 @@ const Ranking: React.FC<{ store: any }> = ({ store }) => {
   const sellers = store.users.filter((u: any) => u.role === UserRole.SELLER || u.role === UserRole.ADMIN);
   
   const rankingData = sellers.map((seller: any) => {
-    const sellerClients = store.clients.filter((c: any) => 
-      c.responsibleId === seller.id && 
-      c.status === ClientStatus.CLOSED &&
-      c.createdAt.startsWith(currentMonth)
+    const sellerEntries = store.financialEntries.filter((e: any) => 
+      e.responsibleId === seller.id && 
+      e.type === 'ENTRADA' &&
+      e.date.startsWith(currentMonth)
     );
     
-    const faturamento = sellerClients.reduce((acc: number, curr: any) => acc + curr.contractValue, 0);
-    const fechamentos = sellerClients.length;
+    const faturamento = sellerEntries.reduce((acc: number, curr: any) => acc + curr.amount, 0);
+    const fechamentos = sellerEntries.length;
     
     return {
       name: seller.name,

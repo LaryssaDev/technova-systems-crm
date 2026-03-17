@@ -49,7 +49,7 @@ export const useStore = () => {
     return {
       users: INITIAL_USERS,
       clients: [],
-      goals: [{ month: new Date().toISOString().slice(0, 7), targetValue: 5000, reachedValue: 0, isCompleted: false }],
+      goals: [{ month: new Date().toISOString().slice(0, 7), targetValue: 7000, reachedValue: 0, isCompleted: false }],
       meetings: [],
       financialEntries: [],
       fixedCosts: [],
@@ -98,6 +98,34 @@ export const useStore = () => {
 
         const finalUsers = supabaseUsers.length > 0 ? supabaseUsers : INITIAL_USERS;
 
+        // Handle goals for new month
+        const existingGoals = supabaseGoals || [];
+        const currentMonthGoal = existingGoals.find(g => g.month === currentMonth);
+        
+        if (!currentMonthGoal) {
+          const date = new Date();
+          date.setMonth(date.getMonth() - 1);
+          const prevMonth = date.toISOString().slice(0, 7);
+          const prevGoal = existingGoals.find(g => g.month === prevMonth);
+          
+          let nextTarget = 7000;
+          if (prevGoal) {
+            const prevRevenue = supabaseEntries
+              .filter((e: any) => e.type === 'ENTRADA' && e.date.startsWith(prevMonth))
+              .reduce((acc: number, curr: any) => acc + curr.amount, 0);
+            
+            if (prevRevenue >= prevGoal.targetValue) {
+              nextTarget = prevGoal.targetValue * 1.25;
+            } else {
+              nextTarget = prevGoal.targetValue;
+            }
+          }
+          
+          const newGoal = { month: currentMonth, targetValue: nextTarget, reachedValue: 0, isCompleted: false };
+          await goalsService.addItem(newGoal);
+          existingGoals.push(newGoal);
+        }
+
         setState(prev => ({
           ...prev,
           users: finalUsers,
@@ -105,7 +133,7 @@ export const useStore = () => {
           meetings: supabaseMeetings,
           financialEntries: supabaseEntries,
           fixedCosts: updatedFixedCosts,
-          goals: supabaseGoals.length > 0 ? supabaseGoals : prev.goals,
+          goals: existingGoals.length > 0 ? existingGoals : prev.goals,
           tabulations: supabaseTabulations
         }));
 
@@ -339,11 +367,11 @@ export const useStore = () => {
     const meetingsCount = filteredClients.filter(c => c.status === ClientStatus.MEETING).length;
     const closed = filteredClients.filter(c => c.status === ClientStatus.CLOSED).length;
     
-    const revenue = filteredClients
-      .filter(c => c.status === ClientStatus.CLOSED && c.createdAt.startsWith(currentMonth))
-      .reduce((acc, curr) => acc + curr.contractValue, 0);
+    const revenue = state.financialEntries
+      .filter(e => e.type === FinanceType.INCOME && e.date.startsWith(currentMonth))
+      .reduce((acc, curr) => acc + curr.amount, 0);
 
-    const goal = state.goals.find(g => g.month === currentMonth) || { targetValue: 5000 };
+    const goal = state.goals.find(g => g.month === currentMonth) || { targetValue: 7000 };
     const conversion = prospects > 0 ? (closed / prospects) * 100 : 0;
     
     return {

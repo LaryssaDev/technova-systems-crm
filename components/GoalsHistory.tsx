@@ -12,7 +12,7 @@ const GoalsHistory: React.FC<{ store: any }> = ({ store }) => {
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="space-y-2">
             <h2 className="text-3xl font-bold text-white">Ciclo de Metas</h2>
-            <p className="text-slate-400 max-w-md">Nosso sistema aumenta automaticamente sua meta em 50% caso o objetivo anterior seja batido. Mantenha a consistência!</p>
+            <p className="text-slate-400 max-w-md">Nosso sistema aumenta automaticamente sua meta em 25% caso o objetivo anterior seja batido. Mantenha a consistência!</p>
           </div>
           
           <div className="flex gap-4">
@@ -36,9 +36,9 @@ const GoalsHistory: React.FC<{ store: any }> = ({ store }) => {
         
         <div className="space-y-4">
           {[...store.goals].reverse().map((goal: any) => {
-            const revenue = store.clients
-              .filter((c: any) => c.status === 'FECHADO' && c.createdAt.startsWith(goal.month))
-              .reduce((acc: number, curr: any) => acc + curr.contractValue, 0);
+            const revenue = store.financialEntries
+              .filter((e: any) => e.type === 'ENTRADA' && e.date.startsWith(goal.month))
+              .reduce((acc: number, curr: any) => acc + curr.amount, 0);
             
             const isHit = revenue >= goal.targetValue;
             
