@@ -1,9 +1,27 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { User, Client, MonthlyGoal, Meeting, ClientStatus, UserRole, FinancialEntry, FinanceType, FixedCost, FixedCostStatus } from './types';
+import { 
+  User, 
+  Client, 
+  MonthlyGoal, 
+  Meeting, 
+  ClientStatus, 
+  UserRole, 
+  FinancialEntry, 
+  FinanceType, 
+  FixedCost, 
+  FixedCostStatus,
+  Tabulation,
+  TabulationType
+} from './types';
 import { INITIAL_USERS } from './constants';
-
-const STORAGE_KEY = 'technova_crm_data_v2_final';
+import { clientesService } from './services/clientesService';
+import { agendaService } from './services/agendaService';
+import { equipeService } from './services/equipeService';
+import { financeiroService } from './services/financeiroService';
+import { custosFixosService } from './services/custosFixosService';
+import { goalsService } from './services/goalsService';
+import { tabulacaoService } from './services/tabulacaoService';
 
 interface AppState {
   users: User[];
@@ -12,6 +30,7 @@ interface AppState {
   meetings: Meeting[];
   financialEntries: FinancialEntry[];
   fixedCosts: FixedCost[];
+  tabulations: Tabulation[];
   currentUser: User | null;
 }
 
@@ -34,112 +53,87 @@ export const useStore = () => {
       meetings: [],
       financialEntries: [],
       fixedCosts: [],
+      tabulations: [],
       currentUser
     };
   });
 
-  // Fetch state on mount
+  // Fetch state on mount from Supabase
   useEffect(() => {
     const fetchState = async () => {
-      console.log("Fetching initial state from server...");
+      console.log("Fetching initial state from Supabase...");
       try {
-        const res = await fetch('/api/state', { cache: 'no-store' });
-        if (res.ok) {
-          const data = await res.json();
-          console.log("State fetched successfully", { 
-            clients: data.clients?.length,
-            entries: data.financialEntries?.length 
-          });
-          
-          // Check for month change to reset fixed costs
-          const currentMonth = new Date().toISOString().slice(0, 7);
-          let updatedFixedCosts = data.fixedCosts || [];
-          let needsUpdate = false;
+        const [
+          supabaseUsers,
+          supabaseClients,
+          supabaseMeetings,
+          supabaseEntries,
+          supabaseCosts,
+          supabaseGoals,
+          supabaseTabulations
+        ] = await Promise.all([
+          equipeService.getItems(),
+          clientesService.getItems(),
+          agendaService.getItems(),
+          financeiroService.getItems(),
+          custosFixosService.getItems(),
+          goalsService.getItems(),
+          tabulacaoService.getItems()
+        ]);
 
-          updatedFixedCosts = updatedFixedCosts.map((cost: FixedCost) => {
-            if (cost.lastPaidMonth !== currentMonth && cost.status === FixedCostStatus.PAID) {
-              needsUpdate = true;
-              return { ...cost, status: FixedCostStatus.PENDING };
-            }
-            return cost;
-          });
+        console.log("State fetched successfully from Supabase");
+        
+        // Check for month change to reset fixed costs
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        let updatedFixedCosts = supabaseCosts || [];
+        let needsUpdate = false;
 
-          setState(prev => ({
-            ...prev,
-            ...data,
-            fixedCosts: updatedFixedCosts,
-            // If server has no users, keep INITIAL_USERS
-            users: data.users && data.users.length > 0 ? data.users : INITIAL_USERS
-          }));
-
-          isLoaded.current = true;
-          setLoading(false);
-
-          if (needsUpdate) {
-            console.log("Month change detected, resetting fixed costs...");
-            // Save the reset state back to server
-            const { currentUser, ...persistentState } = { ...data, fixedCosts: updatedFixedCosts };
-            await fetch('/api/state', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(persistentState)
-            });
+        updatedFixedCosts = updatedFixedCosts.map((cost: FixedCost) => {
+          if (cost.lastPaidMonth !== currentMonth && cost.status === FixedCostStatus.PAID) {
+            needsUpdate = true;
+            return { ...cost, status: FixedCostStatus.PENDING };
           }
-        } else {
-          console.error("Server returned error when fetching state", res.status);
-          // If server failed, we still want to allow the app to work, but we must be careful
-          // For now, let's assume if it's 404 or something, it's a fresh start
-          isLoaded.current = true;
-          setLoading(false);
+          return cost;
+        });
+
+        const finalUsers = supabaseUsers.length > 0 ? supabaseUsers : INITIAL_USERS;
+
+        setState(prev => ({
+          ...prev,
+          users: finalUsers,
+          clients: supabaseClients,
+          meetings: supabaseMeetings,
+          financialEntries: supabaseEntries,
+          fixedCosts: updatedFixedCosts,
+          goals: supabaseGoals.length > 0 ? supabaseGoals : prev.goals,
+          tabulations: supabaseTabulations
+        }));
+
+        isLoaded.current = true;
+        setLoading(false);
+
+        if (needsUpdate) {
+          console.log("Month change detected, resetting fixed costs in Supabase...");
+          await Promise.all(updatedFixedCosts.map(cost => 
+            custosFixosService.updateItem(cost.id, { status: cost.status })
+          ));
         }
       } catch (e) {
-        console.error("Failed to fetch state from server", e);
-        // On network error, we don't set isLoaded to true to avoid overwriting data
-        // But we must stop loading so the user can see the error or retry
+        console.error("Failed to fetch state from Supabase", e);
         setLoading(false);
       }
     };
     fetchState();
   }, []);
 
-  // Save state to server when it changes
+  // Save currentUser to localStorage for session persistence
   useEffect(() => {
-    const { currentUser, ...persistentState } = state;
-    
-    // Save currentUser to localStorage for session persistence
-    if (currentUser) {
-      localStorage.setItem('technova_crm_user', JSON.stringify(currentUser));
+    if (state.currentUser) {
+      localStorage.setItem('technova_crm_user', JSON.stringify(state.currentUser));
     } else {
       localStorage.removeItem('technova_crm_user');
     }
-
-    const saveState = async () => {
-      if (!isLoaded.current) {
-        console.log("Save skipped: state not yet loaded from server");
-        return;
-      }
-      
-      try {
-        console.log("Saving state to server...");
-        const res = await fetch('/api/state', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(persistentState)
-        });
-        if (!res.ok) {
-          console.error("Failed to save state: server returned", res.status);
-        } else {
-          console.log("State saved successfully");
-        }
-      } catch (e) {
-        console.error("Failed to save state to server", e);
-      }
-    };
-
-    // Debounce saving to avoid too many requests
-    const timeoutId = setTimeout(saveState, 1000);
-    return () => clearTimeout(timeoutId);
-  }, [state.users, state.clients, state.goals, state.meetings, state.financialEntries, state.fixedCosts, state.currentUser]);
+  }, [state.currentUser]);
 
   const login = (loginStr: string, pass: string) => {
     const user = state.users.find(u => u.login === loginStr && u.password === pass);
@@ -154,122 +148,61 @@ export const useStore = () => {
     setState(prev => ({ ...prev, currentUser: null }));
   };
 
-  const addUser = (user: Omit<User, 'id'>) => {
-    const newUser = { ...user, id: crypto.randomUUID() };
+  const addUser = async (user: Omit<User, 'id'>) => {
+    const newUser = await equipeService.addItem(user);
     setState(prev => ({ ...prev, users: [...prev.users, newUser] }));
   };
 
-  const deleteUser = (id: string) => {
+  const deleteUser = async (id: string) => {
+    await equipeService.deleteItem(id);
     setState(prev => ({ ...prev, users: prev.users.filter(u => u.id !== id) }));
   };
 
-  const addClient = (client: Omit<Client, 'id' | 'createdAt'>) => {
-    const newClient: Client = {
+  const addClient = async (client: Omit<Client, 'id' | 'createdAt'>) => {
+    const newClientData = {
       ...client,
-      id: crypto.randomUUID(),
       createdAt: new Date().toISOString()
     };
     
-    setState(prev => {
-      const newEntries = [...prev.financialEntries];
-      if (newClient.status === ClientStatus.CLOSED) {
-        newEntries.push({
-          id: crypto.randomUUID(),
-          type: FinanceType.INCOME,
-          description: `Venda Efetivada: ${newClient.company}`,
-          amount: newClient.contractValue,
-          category: 'Venda',
-          paymentMethod: 'A definir',
-          date: new Date().toISOString().split('T')[0],
-          relatedClientId: newClient.id,
-          responsibleId: newClient.responsibleId,
-          notes: `Lançamento automático de venda.`
-        });
-      }
-      return { ...prev, clients: [...prev.clients, newClient], financialEntries: newEntries };
-    });
+    const newClient = await clientesService.addItem(newClientData);
+    
+    setState(prev => ({
+      ...prev,
+      clients: [...prev.clients, newClient]
+    }));
   };
 
-  const updateClientStatus = (clientId: string, status: ClientStatus) => {
-    setState(prev => {
-      const client = prev.clients.find(c => c.id === clientId);
-      if (!client) return prev;
+  const updateClientStatus = async (clientId: string, status: ClientStatus) => {
+    const client = state.clients.find(c => c.id === clientId);
+    if (!client) return;
 
-      let newEntries = [...prev.financialEntries];
-      
-      if (status === ClientStatus.CLOSED && client.status !== ClientStatus.CLOSED) {
-        newEntries.push({
-          id: crypto.randomUUID(),
-          type: FinanceType.INCOME,
-          description: `Venda Efetivada: ${client.company}`,
-          amount: client.contractValue,
-          category: 'Venda',
-          paymentMethod: 'A definir',
-          date: new Date().toISOString().split('T')[0],
-          relatedClientId: client.id,
-          responsibleId: client.responsibleId,
-          notes: `Lançamento automático de venda.`
-        });
-      } else if (status !== ClientStatus.CLOSED && client.status === ClientStatus.CLOSED) {
-        newEntries = newEntries.filter(e => e.relatedClientId !== clientId);
-      }
+    await clientesService.updateItem(clientId, { status });
 
-      const updatedClients = prev.clients.map(c => 
-        c.id === clientId ? { ...c, status } : c
-      );
-      return { ...prev, clients: updatedClients, financialEntries: newEntries };
-    });
+    setState(prev => ({
+      ...prev,
+      clients: prev.clients.map(c => c.id === clientId ? { ...c, status } : c)
+    }));
   };
 
-  const updateClient = (clientId: string, updatedData: Partial<Client>) => {
-    setState(prev => {
-      const client = prev.clients.find(c => c.id === clientId);
-      if (!client) return prev;
+  const updateClient = async (clientId: string, updatedData: Partial<Client>) => {
+    const client = state.clients.find(c => c.id === clientId);
+    if (!client) return;
 
-      const newStatus = updatedData.status || client.status;
-      const newValue = updatedData.contractValue !== undefined ? updatedData.contractValue : client.contractValue;
-      
-      let newEntries = [...prev.financialEntries];
+    await clientesService.updateItem(clientId, updatedData);
 
-      if (newStatus === ClientStatus.CLOSED && client.status !== ClientStatus.CLOSED) {
-        newEntries.push({
-          id: crypto.randomUUID(),
-          type: FinanceType.INCOME,
-          description: `Venda Efetivada: ${updatedData.company || client.company}`,
-          amount: newValue,
-          category: 'Venda',
-          paymentMethod: 'A definir',
-          date: new Date().toISOString().split('T')[0],
-          relatedClientId: client.id,
-          responsibleId: updatedData.responsibleId || client.responsibleId,
-          notes: `Lançamento automático de venda.`
-        });
-      } else if (newStatus !== ClientStatus.CLOSED && client.status === ClientStatus.CLOSED) {
-        newEntries = newEntries.filter(e => e.relatedClientId !== clientId);
-      } else if (newStatus === ClientStatus.CLOSED && client.status === ClientStatus.CLOSED) {
-        newEntries = newEntries.map(e => {
-          if (e.relatedClientId === clientId) {
-            return {
-              ...e,
-              amount: newValue,
-              description: `Venda Efetivada: ${updatedData.company || client.company}`,
-              responsibleId: updatedData.responsibleId || client.responsibleId
-            };
-          }
-          return e;
-        });
-      }
-
-      const updatedClients = prev.clients.map(c => 
-        c.id === clientId ? { ...c, ...updatedData } : c
-      );
-
-      return { ...prev, clients: updatedClients, financialEntries: newEntries };
-    });
+    setState(prev => ({
+      ...prev,
+      clients: prev.clients.map(c => c.id === clientId ? { ...c, ...updatedData } : c)
+    }));
   };
 
-  const deleteClient = (clientId: string) => {
+  const deleteClient = async (clientId: string) => {
     if (state.currentUser?.role !== UserRole.ADMIN) return;
+    
+    await clientesService.deleteItem(clientId);
+    const relatedEntries = state.financialEntries.filter(e => e.relatedClientId === clientId);
+    await Promise.all(relatedEntries.map(e => financeiroService.deleteItem(e.id)));
+
     setState(prev => ({
       ...prev,
       clients: prev.clients.filter(c => c.id !== clientId),
@@ -277,72 +210,75 @@ export const useStore = () => {
     }));
   };
 
-  const addFinancialEntry = (entry: Omit<FinancialEntry, 'id'>) => {
-    const newEntry = { ...entry, id: crypto.randomUUID() };
+  const addFinancialEntry = async (entry: Omit<FinancialEntry, 'id'>) => {
+    const newEntry = await financeiroService.addItem(entry);
     setState(prev => ({ ...prev, financialEntries: [...prev.financialEntries, newEntry] }));
   };
 
-  const deleteFinancialEntry = (id: string) => {
+  const deleteFinancialEntry = async (id: string) => {
+    await financeiroService.deleteItem(id);
     setState(prev => ({
       ...prev,
       financialEntries: prev.financialEntries.filter(e => e.id !== id)
     }));
   };
 
-  const addMeeting = (meeting: Omit<Meeting, 'id'>) => {
-    const newMeeting = { ...meeting, id: crypto.randomUUID() };
+  const addMeeting = async (meeting: Omit<Meeting, 'id'>) => {
+    const newMeeting = await agendaService.addItem(meeting);
     setState(prev => ({ ...prev, meetings: [...prev.meetings, newMeeting] }));
   };
 
-  const addFixedCost = (cost: Omit<FixedCost, 'id' | 'status'>) => {
-    const newCost: FixedCost = {
+  const addFixedCost = async (cost: Omit<FixedCost, 'id' | 'status'>) => {
+    const newCostData = {
       ...cost,
-      id: crypto.randomUUID(),
       status: FixedCostStatus.PENDING
     };
+    const newCost = await custosFixosService.addItem(newCostData);
     setState(prev => ({ ...prev, fixedCosts: [...prev.fixedCosts, newCost] }));
   };
 
-  const updateFixedCostStatus = (id: string, status: FixedCostStatus) => {
+  const updateFixedCostStatus = async (id: string, status: FixedCostStatus) => {
     const currentMonth = new Date().toISOString().slice(0, 7);
-    
-    setState(prev => {
-      const cost = prev.fixedCosts.find(c => c.id === id);
-      if (!cost) return prev;
+    const cost = state.fixedCosts.find(c => c.id === id);
+    if (!cost) return;
 
-      let newEntries = [...prev.financialEntries];
-      
-      if (status === FixedCostStatus.PAID && cost.status !== FixedCostStatus.PAID) {
-        // Add financial entry
-        newEntries.push({
-          id: crypto.randomUUID(),
-          type: FinanceType.EXPENSE,
-          description: `Custo Fixo: ${cost.description}`,
-          amount: cost.amount,
-          category: cost.category,
-          paymentMethod: 'A definir',
-          date: new Date().toISOString().split('T')[0],
-          responsibleId: prev.currentUser?.id || 'system',
-          notes: `Pagamento automático de custo fixo.`
-        });
-      }
+    const lastPaidMonth = status === FixedCostStatus.PAID ? currentMonth : cost.lastPaidMonth;
+    await custosFixosService.updateItem(id, { status, lastPaidMonth });
 
-      const updatedFixedCosts = prev.fixedCosts.map(c => 
-        c.id === id ? { ...c, status, lastPaidMonth: status === FixedCostStatus.PAID ? currentMonth : c.lastPaidMonth } : c
-      );
+    let newEntry: FinancialEntry | null = null;
+    if (status === FixedCostStatus.PAID && cost.status !== FixedCostStatus.PAID) {
+      const entryData: Omit<FinancialEntry, 'id'> = {
+        type: FinanceType.EXPENSE,
+        description: `Custo Fixo: ${cost.description}`,
+        amount: cost.amount,
+        category: cost.category,
+        paymentMethod: 'A definir',
+        date: new Date().toISOString().split('T')[0],
+        responsibleId: state.currentUser?.id || 'system',
+        notes: `Pagamento automático de custo fixo.`
+      };
+      newEntry = await financeiroService.addItem(entryData);
+    }
 
-      return { ...prev, fixedCosts: updatedFixedCosts, financialEntries: newEntries };
-    });
+    setState(prev => ({
+      ...prev,
+      fixedCosts: prev.fixedCosts.map(c => 
+        c.id === id ? { ...c, status, lastPaidMonth } : c
+      ),
+      financialEntries: newEntry ? [...prev.financialEntries, newEntry] : prev.financialEntries
+    }));
   };
 
-  const deleteFixedCost = (id: string) => {
+  const deleteFixedCost = async (id: string) => {
+    await custosFixosService.deleteItem(id);
     setState(prev => ({
       ...prev,
       fixedCosts: prev.fixedCosts.filter(c => c.id !== id)
     }));
   };
 
-  const updateGoal = (month: string, targetValue: number) => {
+  const updateGoal = async (month: string, targetValue: number) => {
+    await goalsService.updateGoal(month, { targetValue });
     setState(prev => {
       const existing = prev.goals.find(g => g.month === month);
       if (existing) {
@@ -356,6 +292,39 @@ export const useStore = () => {
         goals: [...prev.goals, { month, targetValue, reachedValue: 0, isCompleted: false }]
       };
     });
+  };
+
+  const addTabulation = async (tabulation: Omit<Tabulation, 'id' | 'createdAt' | 'responsibleId' | 'responsibleName'>) => {
+    const newTabulationData = {
+      ...tabulation,
+      createdAt: new Date().toISOString(),
+      responsibleId: state.currentUser?.id || 'system',
+      responsibleName: state.currentUser?.name || 'Sistema'
+    };
+
+    const newTabulation = await tabulacaoService.addItem(newTabulationData);
+
+    let newEntry: FinancialEntry | null = null;
+    if (newTabulation.type === TabulationType.PAYMENT && newTabulation.paymentAmount) {
+      const entryData: Omit<FinancialEntry, 'id'> = {
+        type: FinanceType.INCOME,
+        description: `Pagamento: ${newTabulation.clientName}`,
+        amount: newTabulation.paymentAmount,
+        category: 'Venda',
+        paymentMethod: newTabulation.paymentMethod || 'A definir',
+        date: new Date().toISOString().split('T')[0],
+        relatedClientId: newTabulation.clientId,
+        responsibleId: newTabulation.responsibleId,
+        notes: `Lançamento via tabulação: ${newTabulation.observations}`
+      };
+      newEntry = await financeiroService.addItem(entryData);
+    }
+
+    setState(prev => ({
+      ...prev,
+      tabulations: [newTabulation, ...prev.tabulations],
+      financialEntries: newEntry ? [...prev.financialEntries, newEntry] : prev.financialEntries
+    }));
   };
 
   const getDashboardData = () => {
@@ -406,6 +375,7 @@ export const useStore = () => {
     updateFixedCostStatus,
     deleteFixedCost,
     updateGoal,
+    addTabulation,
     getDashboardData,
     loading
   };

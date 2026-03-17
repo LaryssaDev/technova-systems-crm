@@ -94,3 +94,31 @@ export interface FinancialEntry {
   responsibleId: string;
   notes: string;
 }
+
+export enum TabulationType {
+  CONTACT = 'contato',
+  PAYMENT = 'pagamento',
+  OBSERVATION = 'observação'
+}
+
+export enum PaymentMethod {
+  PIX = 'Pix',
+  CREDIT_CARD = 'Cartão de Credito',
+  BOLETO = 'Boleto',
+  CASH = 'Dinheiro',
+  TRANSFER = 'Trasferencia'
+}
+
+export interface Tabulation {
+  id: string;
+  clientId: string;
+  clientName: string;
+  type: TabulationType;
+  phoneUsed: string;
+  observations: string;
+  paymentAmount?: number;
+  paymentMethod?: PaymentMethod;
+  createdAt: string;
+  responsibleId: string;
+  responsibleName: string;
+}

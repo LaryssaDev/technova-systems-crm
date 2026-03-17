@@ -10,6 +10,7 @@ import {
   ShieldCheck, 
   DollarSign,
   Receipt,
+  ClipboardList,
   LogOut 
 } from 'lucide-react';
 import { User, UserRole } from '../types';
@@ -25,6 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogout, us
   const allMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: [UserRole.ADMIN, UserRole.SELLER, UserRole.RH, UserRole.FINANCEIRO] },
     { id: 'clients', label: 'Clientes', icon: Users, roles: [UserRole.ADMIN, UserRole.SELLER, UserRole.RH] },
+    { id: 'tabulacao', label: 'Tabulação', icon: ClipboardList, roles: [UserRole.ADMIN, UserRole.SELLER, UserRole.RH] },
     { id: 'pipeline', label: 'Pipeline', icon: Kanban, roles: [UserRole.ADMIN, UserRole.SELLER] },
     { id: 'goals', label: 'Metas', icon: Target, roles: [UserRole.ADMIN, UserRole.SELLER] },
     { id: 'ranking', label: 'Ranking', icon: Trophy, roles: [UserRole.ADMIN, UserRole.RH] },

@@ -13,6 +13,7 @@ import Agenda from './components/Agenda';
 import UserManager from './components/UserManager';
 import Finance from './components/Finance';
 import FixedCosts from './components/FixedCosts';
+import Tabulacao from './components/Tabulacao';
 
 const App: React.FC = () => {
   const store = useStore();
@@ -25,6 +26,7 @@ const App: React.FC = () => {
     const permissions: Record<string, UserRole[]> = {
       dashboard: [UserRole.ADMIN, UserRole.SELLER, UserRole.RH, UserRole.FINANCEIRO],
       clients: [UserRole.ADMIN, UserRole.SELLER, UserRole.RH],
+      tabulacao: [UserRole.ADMIN, UserRole.SELLER, UserRole.RH],
       pipeline: [UserRole.ADMIN, UserRole.SELLER],
       goals: [UserRole.ADMIN, UserRole.SELLER],
       ranking: [UserRole.ADMIN, UserRole.RH],
@@ -67,6 +69,8 @@ const App: React.FC = () => {
         return <Dashboard store={store} />;
       case 'clients':
         return <ClientList store={store} />;
+      case 'tabulacao':
+        return <Tabulacao store={store} />;
       case 'pipeline':
         return <Pipeline store={store} />;
       case 'goals':
