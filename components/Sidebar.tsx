@@ -41,9 +41,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogout, us
   const filteredMenu = allMenuItems.filter(item => item.roles.includes(user.role));
 
   return (
-    <aside className="w-64 bg-slate-900 border-r border-slate-800 fixed h-full flex flex-col z-50">
-      <div className="p-6">
-        <div className="flex items-center gap-2 mb-8 group cursor-default">
+    <aside className="w-64 bg-slate-900 border-r border-slate-800 fixed h-full flex flex-col z-50 overflow-hidden">
+      {/* Logo Section */}
+      <div className="p-6 pb-4">
+        <div className="flex items-center gap-2 group cursor-default">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center group-hover:rotate-12 transition-transform">
             <span className="text-white font-black italic">T</span>
           </div>
@@ -51,7 +52,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogout, us
             TechNova
           </h2>
         </div>
+      </div>
 
+      {/* Navigation Section - Scrollable */}
+      <div className="flex-1 overflow-y-auto px-6 py-2">
         <nav className="space-y-1">
           {filteredMenu.map((item) => (
             <button
@@ -70,7 +74,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogout, us
         </nav>
       </div>
 
-      <div className="mt-auto p-6 border-t border-slate-800">
+      {/* User & Logout Section - Fixed at Bottom */}
+      <div className="p-6 border-t border-slate-800 bg-slate-900">
         <div className="flex items-center gap-3 mb-4 p-3 bg-slate-800/40 rounded-2xl border border-slate-800/50">
           <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-blue-400 font-bold uppercase ring-2 ring-blue-600/20">
             {user.name.charAt(0)}
