@@ -12,7 +12,9 @@ import {
   FixedCost, 
   FixedCostStatus,
   Tabulation,
-  TabulationType
+  TabulationType,
+  TimeClockEntry,
+  TimeClockType
 } from './types';
 import { INITIAL_USERS } from './constants';
 import { clientesService } from './services/clientesService';
@@ -22,6 +24,7 @@ import { financeiroService } from './services/financeiroService';
 import { custosFixosService } from './services/custosFixosService';
 import { goalsService } from './services/goalsService';
 import { tabulacaoService } from './services/tabulacaoService';
+import { pontoService } from './services/pontoService';
 
 interface AppState {
   users: User[];
@@ -31,6 +34,7 @@ interface AppState {
   financialEntries: FinancialEntry[];
   fixedCosts: FixedCost[];
   tabulations: Tabulation[];
+  timeClockEntries: TimeClockEntry[];
   currentUser: User | null;
 }
 
@@ -54,6 +58,7 @@ export const useStore = () => {
       financialEntries: [],
       fixedCosts: [],
       tabulations: [],
+      timeClockEntries: [],
       currentUser
     };
   });
@@ -70,7 +75,8 @@ export const useStore = () => {
           supabaseEntries,
           supabaseCosts,
           supabaseGoals,
-          supabaseTabulations
+          supabaseTabulations,
+          supabaseTimeClock
         ] = await Promise.all([
           equipeService.getItems(),
           clientesService.getItems(),
@@ -78,7 +84,8 @@ export const useStore = () => {
           financeiroService.getItems(),
           custosFixosService.getItems(),
           goalsService.getItems(),
-          tabulacaoService.getItems()
+          tabulacaoService.getItems(),
+          pontoService.getEntries()
         ]);
 
         console.log("State fetched successfully from Supabase");
@@ -134,7 +141,8 @@ export const useStore = () => {
           financialEntries: supabaseEntries,
           fixedCosts: updatedFixedCosts,
           goals: existingGoals.length > 0 ? existingGoals : prev.goals,
-          tabulations: supabaseTabulations
+          tabulations: supabaseTabulations,
+          timeClockEntries: supabaseTimeClock || []
         }));
 
         isLoaded.current = true;
@@ -355,6 +363,26 @@ export const useStore = () => {
     }));
   };
 
+  const addTimeClockEntry = async (type: TimeClockType) => {
+    if (!state.currentUser) return;
+
+    const newEntryData: Omit<TimeClockEntry, 'id'> = {
+      userId: state.currentUser.id,
+      userName: state.currentUser.name,
+      type,
+      timestamp: new Date().toISOString(),
+      date: new Date().toISOString().split('T')[0]
+    };
+
+    const newEntry = await pontoService.addEntry(newEntryData);
+    setState(prev => ({ ...prev, timeClockEntries: [newEntry, ...prev.timeClockEntries] }));
+    return newEntry;
+  };
+
+  const getTimeClockReport = async (userId: string | null, startDate: string, endDate: string) => {
+    return await pontoService.getEntriesByPeriod(userId, startDate, endDate);
+  };
+
   const getDashboardData = () => {
     const currentMonth = new Date().toISOString().slice(0, 7);
     const user = state.currentUser;
@@ -404,6 +432,8 @@ export const useStore = () => {
     deleteFixedCost,
     updateGoal,
     addTabulation,
+    addTimeClockEntry,
+    getTimeClockReport,
     getDashboardData,
     loading
   };

@@ -122,3 +122,19 @@ export interface Tabulation {
   responsibleId: string;
   responsibleName: string;
 }
+
+export enum TimeClockType {
+  LOGIN = 'ENTRADA',
+  LUNCH_OUT = 'SAÍDA ALMOÇO',
+  LUNCH_IN = 'VOLTA ALMOÇO',
+  LOGOUT = 'SAÍDA'
+}
+
+export interface TimeClockEntry {
+  id: string;
+  userId: string;
+  userName: string;
+  type: TimeClockType;
+  timestamp: string;
+  date: string;
+}

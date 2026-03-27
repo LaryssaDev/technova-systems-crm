@@ -30,7 +30,7 @@ async function startServer() {
   app.use(express.json({ limit: '50mb' }));
 
   // API Routes
-  app.get("/api/state", (req, res) => {
+  app.get("/api/state", (req: express.Request, res: express.Response) => {
     console.log("GET /api/state - Fetching state");
     if (fs.existsSync(DATA_FILE)) {
       try {
@@ -46,7 +46,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/state", (req, res) => {
+  app.post("/api/state", (req: express.Request, res: express.Response) => {
     const newState = req.body;
     console.log("POST /api/state - Saving state", { 
       clients: newState.clients?.length,
@@ -75,7 +75,7 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     app.use(express.static(path.join(__dirname, "dist")));
-    app.get("*", (req, res) => {
+    app.get("*", (req: express.Request, res: express.Response) => {
       res.sendFile(path.join(__dirname, "dist", "index.html"));
     });
   }

@@ -14,6 +14,7 @@ import UserManager from './components/UserManager';
 import Finance from './components/Finance';
 import FixedCosts from './components/FixedCosts';
 import Tabulacao from './components/Tabulacao';
+import TimeClock from './components/TimeClock';
 
 const App: React.FC = () => {
   const store = useStore();
@@ -32,6 +33,7 @@ const App: React.FC = () => {
       ranking: [UserRole.ADMIN, UserRole.RH],
       agenda: [UserRole.ADMIN, UserRole.SELLER, UserRole.RH],
       users: [UserRole.ADMIN, UserRole.RH],
+      ponto: [UserRole.ADMIN, UserRole.SELLER, UserRole.RH, UserRole.FINANCEIRO],
       fixed_costs: [UserRole.ADMIN, UserRole.FINANCEIRO],
       finance: [UserRole.ADMIN, UserRole.FINANCEIRO],
     };
@@ -81,6 +83,8 @@ const App: React.FC = () => {
         return <Agenda store={store} />;
       case 'users':
         return <UserManager store={store} />;
+      case 'ponto':
+        return <TimeClock store={store} />;
       case 'fixed_costs':
         return <FixedCosts store={store} />;
       case 'finance':
@@ -105,6 +109,7 @@ const App: React.FC = () => {
             <h1 className="text-2xl font-bold text-white capitalize">
               {activeTab === 'dashboard' ? 'Painel de Controle' : 
                activeTab === 'fixed_costs' ? 'Custos Fixos Mensais' : 
+               activeTab === 'ponto' ? 'Registro de Ponto' :
                activeTab}
             </h1>
             <p className="text-slate-400 text-sm italic">TechNova CRM v2.0 - Gestão Estratégica</p>

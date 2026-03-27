@@ -11,6 +11,7 @@ import {
   DollarSign,
   Receipt,
   ClipboardList,
+  Clock,
   LogOut 
 } from 'lucide-react';
 import { User, UserRole } from '../types';
@@ -32,6 +33,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogout, us
     { id: 'ranking', label: 'Ranking', icon: Trophy, roles: [UserRole.ADMIN, UserRole.RH] },
     { id: 'agenda', label: 'Agenda', icon: Calendar, roles: [UserRole.ADMIN, UserRole.SELLER, UserRole.RH] },
     { id: 'users', label: 'Equipe', icon: ShieldCheck, roles: [UserRole.ADMIN, UserRole.RH] },
+    { id: 'ponto', label: 'Ponto', icon: Clock, roles: [UserRole.ADMIN, UserRole.SELLER, UserRole.RH, UserRole.FINANCEIRO] },
     { id: 'fixed_costs', label: 'Custos Fixos', icon: Receipt, roles: [UserRole.ADMIN, UserRole.FINANCEIRO] },
     { id: 'finance', label: 'Financeiro', icon: DollarSign, roles: [UserRole.ADMIN, UserRole.FINANCEIRO] },
   ];
