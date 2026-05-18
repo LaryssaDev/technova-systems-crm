@@ -1,0 +1,108 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "System user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "login": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["ADMIN", "VENDEDOR", "RH", "FINANCEIRO"] },
+        "password": { "type": "string" }
+      },
+      "required": ["id", "login", "name", "role"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "CRM Client",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "company": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "segment": { "type": "string" },
+        "serviceType": { "type": "string", "enum": ["SITE", "SISTEMA"] },
+        "contractValue": { "type": "number" },
+        "status": { "type": "string", "enum": ["PROSPECT", "REUNIÃO", "FECHADO", "PERDIDO"] },
+        "responsibleId": { "type": "string" },
+        "responsibleName": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["id", "name", "company", "status", "responsibleId", "createdAt"]
+    },
+    "MonthlyGoal": {
+      "title": "MonthlyGoal",
+      "description": "Monthly sales goal",
+      "type": "object",
+      "properties": {
+        "month": { "type": "string" },
+        "targetValue": { "type": "number" },
+        "reachedValue": { "type": "number" },
+        "isCompleted": { "type": "boolean" }
+      },
+      "required": ["month", "targetValue"]
+    },
+    "Meeting": {
+      "title": "Meeting",
+      "description": "Scheduled meeting",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "company": { "type": "string" },
+        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "responsibleId": { "type": "string" },
+        "responsibleName": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["id", "title", "clientId", "responsibleId", "date", "time"]
+    },
+    "FinancialEntry": {
+      "title": "FinancialEntry",
+      "description": "Financial income or expense",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["ENTRADA", "SAÍDA"] },
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "category": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "date": { "type": "string" },
+        "relatedClientId": { "type": "string" },
+        "responsibleId": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["id", "type", "description", "amount", "date", "responsibleId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "System users"
+    },
+    "/clients/{clientId}": {
+      "schema": "Client",
+      "description": "CRM clients"
+    },
+    "/goals/{goalId}": {
+      "schema": "MonthlyGoal",
+      "description": "Monthly goals"
+    },
+    "/meetings/{meetingId}": {
+      "schema": "Meeting",
+      "description": "Scheduled meetings"
+    },
+    "/financialEntries/{entryId}": {
+      "schema": "FinancialEntry",
+      "description": "Financial entries"
+    }
+  }
+}
