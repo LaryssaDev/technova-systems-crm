@@ -47,5 +47,5 @@ export const STATUS_COLORS = {
 };
 
 export const FINANCE_CATEGORIES = [
-  'Venda', 'Ferramenta', 'Marketing', 'Imposto', 'Comissão', 'Infraestrutura', 'Outros'
+  'Venda', 'Ferramenta', 'Marketing', 'Imposto', 'Comissão', 'Infraestrutura', 'Empréstimo', 'Outros'
 ];

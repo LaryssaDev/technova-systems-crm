@@ -19,14 +19,19 @@ const FixedCosts: React.FC<{ store: any }> = ({ store }) => {
     description: '',
     amount: 0,
     dueDate: '1',
-    category: 'Outros'
+    category: 'Outros',
+    installments: 1
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    store.addFixedCost(formData);
+    const costData = { ...formData };
+    if (costData.category !== 'Empréstimo') {
+      delete (costData as any).installments;
+    }
+    store.addFixedCost(costData);
     setShowModal(false);
-    setFormData({ description: '', amount: 0, dueDate: '1', category: 'Outros' });
+    setFormData({ description: '', amount: 0, dueDate: '1', category: 'Outros', installments: 1 });
   };
 
   const handleStatusToggle = (id: string, currentStatus: FixedCostStatus) => {
@@ -121,6 +126,12 @@ const FixedCosts: React.FC<{ store: any }> = ({ store }) => {
                   <tr key={cost.id} className="hover:bg-slate-800/30 transition-colors group">
                     <td className="p-4">
                       <div className="font-bold text-slate-200">{cost.description}</div>
+                      {cost.category === 'Empréstimo' && cost.installments && (
+                        <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1 flex items-center gap-1.5">
+                          <div className="w-1 h-1 rounded-full bg-blue-500"></div>
+                          {cost.currentInstallment || 1}/{cost.installments} parcelas
+                        </div>
+                      )}
                     </td>
                     <td className="p-4">
                       <span className="text-xs px-2 py-1 bg-slate-800 rounded-lg text-slate-400 font-bold uppercase tracking-widest">
@@ -198,8 +209,11 @@ const FixedCosts: React.FC<{ store: any }> = ({ store }) => {
                       type="number"
                       step="0.01"
                       className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 pl-10 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
-                      value={formData.amount}
-                      onChange={e => setFormData({ ...formData, amount: parseFloat(e.target.value) })}
+                      value={formData.amount || ''}
+                      onChange={e => {
+                        const val = parseFloat(e.target.value);
+                        setFormData({ ...formData, amount: isNaN(val) ? 0 : val });
+                      }}
                     />
                   </div>
                 </div>
@@ -211,8 +225,11 @@ const FixedCosts: React.FC<{ store: any }> = ({ store }) => {
                     min="1"
                     max="31"
                     className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
-                    value={formData.dueDate}
-                    onChange={e => setFormData({ ...formData, dueDate: e.target.value })}
+                    value={formData.dueDate || ''}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setFormData({ ...formData, dueDate: val });
+                    }}
                   />
                 </div>
               </div>
@@ -229,6 +246,23 @@ const FixedCosts: React.FC<{ store: any }> = ({ store }) => {
                   ))}
                 </select>
               </div>
+
+              {formData.category === 'Empréstimo' && (
+                <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Quantidade de Parcelas</label>
+                  <input
+                    required
+                    type="number"
+                    min="1"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
+                    value={formData.installments || ''}
+                    onChange={e => {
+                      const val = parseInt(e.target.value);
+                      setFormData({ ...formData, installments: isNaN(val) ? 0 : val });
+                    }}
+                  />
+                </div>
+              )}
 
               <div className="flex gap-4 pt-4">
                 <button

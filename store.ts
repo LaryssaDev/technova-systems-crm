@@ -252,11 +252,20 @@ export const useStore = () => {
   };
 
   const deleteFinancialEntry = async (id: string) => {
-    await financeiroService.deleteItem(id);
+    // Filtro otimista para resposta imediata na UI
     setState(prev => ({
       ...prev,
-      financialEntries: prev.financialEntries.filter(e => e.id !== id)
+      financialEntries: prev.financialEntries.filter(e => String(e.id) !== String(id))
     }));
+
+    try {
+      await financeiroService.deleteItem(id);
+    } catch (e) {
+      console.error("Erro ao deletar entrada financeira:", e);
+      // Opcional: Recarregar do Supabase em caso de erro crítico
+      const supabaseEntries = await financeiroService.getItems();
+      setState(prev => ({ ...prev, financialEntries: supabaseEntries }));
+    }
   };
 
   const clearFinancialHistory = async () => {
@@ -284,7 +293,8 @@ export const useStore = () => {
   const addFixedCost = async (cost: Omit<FixedCost, 'id' | 'status'>) => {
     const newCostData = {
       ...cost,
-      status: FixedCostStatus.PENDING
+      status: FixedCostStatus.PENDING,
+      currentInstallment: cost.category === 'Empréstimo' ? 1 : undefined
     };
     const newCost = await custosFixosService.addItem(newCostData);
     setState(prev => ({ ...prev, fixedCosts: [...prev.fixedCosts, newCost] }));
@@ -295,8 +305,21 @@ export const useStore = () => {
     const cost = state.fixedCosts.find(c => c.id === id);
     if (!cost) return;
 
-    const lastPaidMonth = status === FixedCostStatus.PAID ? currentMonth : cost.lastPaidMonth;
-    await custosFixosService.updateItem(id, { status, lastPaidMonth });
+    let { currentInstallment, lastPaidMonth } = cost;
+    
+    if (status === FixedCostStatus.PAID) {
+      lastPaidMonth = currentMonth;
+      if (cost.category === 'Empréstimo' && cost.installments && cost.status === FixedCostStatus.PENDING) {
+        currentInstallment = Math.min((currentInstallment || 1) + 1, cost.installments);
+      }
+    } else {
+      lastPaidMonth = cost.lastPaidMonth;
+      if (cost.category === 'Empréstimo' && cost.installments && cost.status === FixedCostStatus.PAID) {
+        currentInstallment = Math.max((currentInstallment || 1) - 1, 1);
+      }
+    }
+
+    await custosFixosService.updateItem(id, { status, lastPaidMonth, currentInstallment });
 
     let newEntry: FinancialEntry | null = null;
     if (status === FixedCostStatus.PAID && cost.status !== FixedCostStatus.PAID) {
@@ -316,7 +339,7 @@ export const useStore = () => {
     setState(prev => ({
       ...prev,
       fixedCosts: prev.fixedCosts.map(c => 
-        c.id === id ? { ...c, status, lastPaidMonth } : c
+        c.id === id ? { ...c, status, lastPaidMonth, currentInstallment } : c
       ),
       financialEntries: newEntry ? [...prev.financialEntries, newEntry] : prev.financialEntries
     }));

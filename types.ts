@@ -80,6 +80,8 @@ export interface FixedCost {
   status: FixedCostStatus;
   category: string;
   lastPaidMonth?: string; // YYYY-MM to prevent double payment in same month
+  installments?: number; // Total number of installments if applicable (e.g. loan)
+  currentInstallment?: number; // Current installment number
 }
 
 export interface FinancialEntry {

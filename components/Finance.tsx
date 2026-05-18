@@ -8,6 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 const Finance: React.FC<{ store: any }> = ({ store }) => {
   const [showModal, setShowModal] = useState(false);
   const [showExtrato, setShowExtrato] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [formData, setFormData] = useState({
     type: FinanceType.INCOME,
     description: '',
@@ -18,8 +19,17 @@ const Finance: React.FC<{ store: any }> = ({ store }) => {
     notes: ''
   });
 
-  const incomes = store.financialEntries.filter((e: any) => e.type === FinanceType.INCOME);
-  const expenses = store.financialEntries.filter((e: any) => e.type === FinanceType.EXPENSE);
+  const availableMonths = [
+    ...new Set([
+      new Date().toISOString().slice(0, 7),
+      ...store.financialEntries.map((e: any) => e.date.slice(0, 7))
+    ])
+  ].sort((a, b) => b.localeCompare(a));
+
+  const filteredEntries = store.financialEntries.filter((e: any) => e.date.startsWith(selectedMonth));
+
+  const incomes = filteredEntries.filter((e: any) => e.type === FinanceType.INCOME);
+  const expenses = filteredEntries.filter((e: any) => e.type === FinanceType.EXPENSE);
 
   const totalIncomes = incomes.reduce((acc: number, curr: any) => acc + curr.amount, 0);
   const totalExpenses = expenses.reduce((acc: number, curr: any) => acc + curr.amount, 0);
@@ -40,35 +50,57 @@ const Finance: React.FC<{ store: any }> = ({ store }) => {
     setFormData({ type: FinanceType.INCOME, description: '', amount: 0, category: 'Venda', paymentMethod: 'Pix', date: new Date().toISOString().split('T')[0], notes: '' });
   };
 
+  const formatMonth = (monthStr: string) => {
+    const [year, month] = monthStr.split('-');
+    const date = new Date(Number(year), Number(month) - 1);
+    return date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  };
+
   if (store.currentUser.role === UserRole.RH) return null;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex justify-between items-center bg-slate-900/50 p-6 rounded-3xl border border-slate-800">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-900/50 p-6 rounded-3xl border border-slate-800 gap-4">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2"><DollarSign className="text-emerald-400" /> Fluxo de Caixa</h2>
           <p className="text-slate-400 text-sm">Gestão financeira e controle de lucratividade estratégica</p>
         </div>
-        <button 
-          onClick={() => setShowModal(true)}
-          className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-900/30 transition-all active:scale-95"
-        >
-          <Plus size={16} className="inline mr-2" /> Novo Lançamento
-        </button>
+        
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="relative flex-1 md:flex-none">
+            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />
+            <select 
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="w-full md:w-48 bg-slate-950 border border-slate-800 rounded-2xl py-3 pl-12 pr-4 text-sm font-bold text-slate-200 focus:outline-none focus:border-emerald-500/50 transition-colors appearance-none capitalize"
+            >
+              {availableMonths.map(month => (
+                <option key={month} value={month}>{formatMonth(month)}</option>
+              ))}
+            </select>
+          </div>
+
+          <button 
+            onClick={() => setShowModal(true)}
+            className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-900/30 transition-all active:scale-95"
+          >
+            <Plus size={16} className="inline mr-2" /> Novo Lançamento
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl group hover:border-emerald-500/30 transition-all">
           <div className="flex justify-between items-start mb-6">
             <div className="p-4 bg-emerald-500/10 rounded-2xl text-emerald-400 group-hover:scale-110 transition-transform"><ArrowUpCircle size={32} /></div>
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Faturamento Total</span>
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{formatMonth(selectedMonth)}</span>
           </div>
           <p className="text-4xl font-black text-white">R$ {totalIncomes.toLocaleString()}</p>
         </div>
         <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl group hover:border-rose-500/30 transition-all">
           <div className="flex justify-between items-start mb-6">
             <div className="p-4 bg-rose-500/10 rounded-2xl text-rose-400 group-hover:scale-110 transition-transform"><ArrowDownCircle size={32} /></div>
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Despesas / Saídas</span>
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Despesas Mensais</span>
           </div>
           <p className="text-4xl font-black text-white">R$ {totalExpenses.toLocaleString()}</p>
         </div>
@@ -76,7 +108,7 @@ const Finance: React.FC<{ store: any }> = ({ store }) => {
            <div className={`absolute top-0 right-0 w-32 h-32 -mr-16 -mt-16 rounded-full opacity-5 ${balance >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
           <div className="flex justify-between items-start mb-6">
             <div className={`p-4 rounded-2xl ${balance >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'} group-hover:scale-110 transition-transform`}><PieChart size={32} /></div>
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Saldo Disponível</span>
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Resultado do Mês</span>
           </div>
           <p className={`text-4xl font-black ${balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>R$ {balance.toLocaleString()}</p>
         </div>
@@ -84,7 +116,7 @@ const Finance: React.FC<{ store: any }> = ({ store }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-slate-900 border border-slate-800 p-8 rounded-[40px] h-[450px]">
-           <h3 className="text-lg font-bold mb-8 flex items-center gap-2"><TrendingUp size={20} className="text-blue-500" /> Histórico Mensal</h3>
+           <h3 className="text-lg font-bold mb-8 flex items-center gap-2"><TrendingUp size={20} className="text-blue-500" /> Fluxo {formatMonth(selectedMonth)}</h3>
            <ResponsiveContainer width="100%" height="80%">
              <BarChart data={chartData}>
                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
@@ -103,7 +135,7 @@ const Finance: React.FC<{ store: any }> = ({ store }) => {
         <div className="bg-slate-900 border border-slate-800 p-8 rounded-[40px] flex flex-col h-[450px]">
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-4">
-              <h3 className="text-lg font-bold">Movimentações Recentes</h3>
+              <h3 className="text-lg font-bold">Movimentações de {formatMonth(selectedMonth).split(' ')[0]}</h3>
               <button 
                 onClick={() => setShowExtrato(true)}
                 className="text-[10px] font-black text-blue-500 hover:text-blue-400 uppercase tracking-widest flex items-center gap-1 transition-colors bg-blue-500/10 px-3 py-1 rounded-full"
@@ -113,7 +145,7 @@ const Finance: React.FC<{ store: any }> = ({ store }) => {
             </div>
           </div>
           <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-2">
-            {[...store.financialEntries].reverse().slice(0, 10).map((entry: any) => (
+            {[...filteredEntries].reverse().slice(0, 10).map((entry: any) => (
               <div key={entry.id} className="flex items-center justify-between p-5 bg-slate-800/20 border border-slate-800/50 rounded-2xl hover:bg-slate-800/40 transition-all group">
                 <div className="flex items-center gap-5">
                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${entry.type === FinanceType.INCOME ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
@@ -131,24 +163,24 @@ const Finance: React.FC<{ store: any }> = ({ store }) => {
                     </p>
                     <p className="text-[9px] text-slate-600 font-bold uppercase">{entry.paymentMethod}</p>
                   </div>
-                  {store.currentUser.role === UserRole.ADMIN && (
+                  {(store.currentUser.role === UserRole.ADMIN || store.currentUser.role === UserRole.FINANCEIRO) && (
                     <button 
                       onClick={() => {
-                        if (confirm('Tem certeza que deseja excluir esta movimentação?')) {
+                        if (window.confirm('Deseja realmente excluir esta movimentação?')) {
                           store.deleteFinancialEntry(entry.id);
                         }
                       }}
-                      className="p-2 text-slate-600 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
+                      className="p-2.5 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white rounded-xl transition-all active:scale-95"
                       title="Excluir movimentação"
                     >
-                      <Trash2 size={18} />
+                      <Trash2 size={16} />
                     </button>
                   )}
                 </div>
               </div>
             ))}
-            {store.financialEntries.length === 0 && (
-              <div className="flex-1 flex items-center justify-center italic text-slate-600">Sem registros financeiros.</div>
+            {filteredEntries.length === 0 && (
+              <div className="flex-1 flex items-center justify-center italic text-slate-600">Sem registros financeiros para este mês.</div>
             )}
           </div>
         </div>
@@ -191,7 +223,7 @@ const Finance: React.FC<{ store: any }> = ({ store }) => {
                   <input type="text" className="w-full bg-slate-800/50 border border-slate-700 rounded-2xl px-6 py-4 text-sm focus:border-emerald-500 outline-none transition-all" placeholder="Pix, TED..." value={formData.paymentMethod} onChange={e => setFormData({...formData, paymentMethod: e.target.value})} />
                 </div>
               </div>
-              <button type="submit" className={`w-full py-5 rounded-2xl font-black text-white text-sm uppercase tracking-widest shadow-2xl transition-all active:scale-95 ${formData.type === FinanceType.INCOME ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/30' : 'bg-rose-600 hover:bg-rose-500 shadow-rose-900/30'}`}>Efetivar Operação</button>
+              <button type="submit" className={`w-full py-5 rounded-2xl font-black text-white text-sm uppercase tracking-widest shadow-2xl transition-all active:scale-95 ${formData.type === FinanceType.INCOME ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/30' : 'bg-rose-600 hover:bg-rose-500 shadow-rose-900/40'}`}>Efetivar Operação</button>
             </form>
           </div>
         </div>
@@ -205,9 +237,9 @@ const Finance: React.FC<{ store: any }> = ({ store }) => {
                   <div className="p-3 bg-blue-500/20 rounded-2xl">
                     <TrendingUp className="text-blue-400 w-8 h-8" />
                   </div>
-                  Extrato Financeiro Completo
+                  Extrato Financeiro - {formatMonth(selectedMonth)}
                 </h2>
-                <p className="text-slate-400 mt-2 font-medium">Histórico integral de entradas e saídas do sistema</p>
+                <p className="text-slate-400 mt-2 font-medium">Relatório integral de entradas e saídas do mês selecionado</p>
               </div>
               <button 
                 onClick={() => setShowExtrato(false)}
@@ -218,7 +250,7 @@ const Finance: React.FC<{ store: any }> = ({ store }) => {
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-4 space-y-4 pb-12">
-              {[...store.financialEntries].reverse().map((entry: any) => (
+              {[...filteredEntries].reverse().map((entry: any) => (
                 <div key={entry.id} className="flex items-center justify-between p-7 bg-slate-900/50 border border-slate-800 rounded-[32px] hover:bg-slate-800/40 transition-all group">
                   <div className="flex items-center gap-7">
                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${entry.type === FinanceType.INCOME ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
@@ -237,10 +269,10 @@ const Finance: React.FC<{ store: any }> = ({ store }) => {
                       </p>
                       <p className="text-xs text-slate-600 font-bold uppercase tracking-widest mt-2 bg-slate-800 px-3 py-1 rounded-full border border-slate-700/50 inline-block">{entry.paymentMethod}</p>
                     </div>
-                    {store.currentUser.role === UserRole.ADMIN && (
+                    {(store.currentUser.role === UserRole.ADMIN || store.currentUser.role === UserRole.FINANCEIRO) && (
                       <button 
                         onClick={() => {
-                          if (confirm('Tem certeza que deseja excluir esta movimentação?')) {
+                          if (window.confirm('Tem certeza que deseja excluir esta movimentação?')) {
                             store.deleteFinancialEntry(entry.id);
                           }
                         }}
@@ -253,12 +285,12 @@ const Finance: React.FC<{ store: any }> = ({ store }) => {
                   </div>
                 </div>
               ))}
-              {store.financialEntries.length === 0 && (
+              {filteredEntries.length === 0 && (
                 <div className="flex-1 flex flex-col items-center justify-center py-32 text-center">
                   <div className="w-24 h-24 bg-slate-900 rounded-[32px] flex items-center justify-center text-slate-700 mb-6 border border-slate-800">
                     <PieChart size={40} />
                   </div>
-                  <p className="text-slate-500 font-bold text-xl italic capitalize tracking-tight">Nenhum registro financeiro encontrado.</p>
+                  <p className="text-slate-500 font-bold text-xl italic capitalize tracking-tight">Nenhum registro encontrado para {formatMonth(selectedMonth)}.</p>
                 </div>
               )}
             </div>
