@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../store';
 import { TimeClockType, UserRole, TimeClockEntry } from '../types';
-import { Clock, FileText, Calendar, User as UserIcon, CheckCircle2, AlertCircle, Download } from 'lucide-react';
+import { Clock, FileText, Calendar, User as UserIcon, CheckCircle2, AlertCircle, Download, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const TimeClock: React.FC<{ store: any }> = ({ store }) => {
@@ -256,7 +256,22 @@ const TimeClock: React.FC<{ store: any }> = ({ store }) => {
                     <p className="text-xs text-slate-500">{entry.type} • {formatDate(entry.timestamp)}</p>
                   </div>
                 </div>
-                <span className="text-sm font-mono text-slate-400">{formatTime(entry.timestamp)}</span>
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-mono text-slate-400">{formatTime(entry.timestamp)}</span>
+                  {currentUser?.role === UserRole.ADMIN && (
+                    <button 
+                      onClick={() => {
+                        if (confirm('Tem certeza que deseja excluir este registro de ponto?')) {
+                          store.deleteTimeClockEntry(entry.id);
+                        }
+                      }}
+                      className="text-slate-600 hover:text-rose-500 transition-colors p-1"
+                      title="Excluir registro"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
             {timeClockEntries.length === 0 && (

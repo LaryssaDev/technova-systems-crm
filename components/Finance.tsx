@@ -1,12 +1,13 @@
 
 import React, { useState } from 'react';
-import { DollarSign, ArrowUpCircle, ArrowDownCircle, PieChart, Plus, X, Calendar, Briefcase, TrendingUp } from 'lucide-react';
+import { DollarSign, ArrowUpCircle, ArrowDownCircle, PieChart, Plus, X, Calendar, Briefcase, TrendingUp, Trash2 } from 'lucide-react';
 import { FinanceType, UserRole } from '../types';
 import { FINANCE_CATEGORIES } from '../constants';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const Finance: React.FC<{ store: any }> = ({ store }) => {
   const [showModal, setShowModal] = useState(false);
+  const [showExtrato, setShowExtrato] = useState(false);
   const [formData, setFormData] = useState({
     type: FinanceType.INCOME,
     description: '',
@@ -99,8 +100,18 @@ const Finance: React.FC<{ store: any }> = ({ store }) => {
            </ResponsiveContainer>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-8 rounded-[40px] flex flex-col">
-          <h3 className="text-lg font-bold mb-8">Movimentações Recentes</h3>
+        <div className="bg-slate-900 border border-slate-800 p-8 rounded-[40px] flex flex-col h-[450px]">
+          <div className="flex justify-between items-center mb-8">
+            <div className="flex items-center gap-4">
+              <h3 className="text-lg font-bold">Movimentações Recentes</h3>
+              <button 
+                onClick={() => setShowExtrato(true)}
+                className="text-[10px] font-black text-blue-500 hover:text-blue-400 uppercase tracking-widest flex items-center gap-1 transition-colors bg-blue-500/10 px-3 py-1 rounded-full"
+              >
+                Extrato -&gt;
+              </button>
+            </div>
+          </div>
           <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-2">
             {[...store.financialEntries].reverse().slice(0, 10).map((entry: any) => (
               <div key={entry.id} className="flex items-center justify-between p-5 bg-slate-800/20 border border-slate-800/50 rounded-2xl hover:bg-slate-800/40 transition-all group">
@@ -113,11 +124,26 @@ const Finance: React.FC<{ store: any }> = ({ store }) => {
                     <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-1">{entry.category} • {new Date(entry.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className={`font-black text-lg ${entry.type === FinanceType.INCOME ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    {entry.type === FinanceType.INCOME ? '+' : '-'} R$ {entry.amount.toLocaleString()}
-                  </p>
-                  <p className="text-[9px] text-slate-600 font-bold uppercase">{entry.paymentMethod}</p>
+                <div className="flex items-center gap-6">
+                  <div className="text-right">
+                    <p className={`font-black text-lg ${entry.type === FinanceType.INCOME ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {entry.type === FinanceType.INCOME ? '+' : '-'} R$ {entry.amount.toLocaleString()}
+                    </p>
+                    <p className="text-[9px] text-slate-600 font-bold uppercase">{entry.paymentMethod}</p>
+                  </div>
+                  {store.currentUser.role === UserRole.ADMIN && (
+                    <button 
+                      onClick={() => {
+                        if (confirm('Tem certeza que deseja excluir esta movimentação?')) {
+                          store.deleteFinancialEntry(entry.id);
+                        }
+                      }}
+                      className="p-2 text-slate-600 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
+                      title="Excluir movimentação"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -167,6 +193,75 @@ const Finance: React.FC<{ store: any }> = ({ store }) => {
               </div>
               <button type="submit" className={`w-full py-5 rounded-2xl font-black text-white text-sm uppercase tracking-widest shadow-2xl transition-all active:scale-95 ${formData.type === FinanceType.INCOME ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/30' : 'bg-rose-600 hover:bg-rose-500 shadow-rose-900/30'}`}>Efetivar Operação</button>
             </form>
+          </div>
+        </div>
+      )}
+      {showExtrato && (
+        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-2xl z-[150] flex flex-col p-6 animate-in fade-in duration-300">
+          <div className="max-w-5xl mx-auto w-full flex flex-col h-full">
+            <div className="flex justify-between items-center mb-10 pb-6 border-b border-white/5">
+              <div>
+                <h2 className="text-3xl font-black text-white flex items-center gap-4">
+                  <div className="p-3 bg-blue-500/20 rounded-2xl">
+                    <TrendingUp className="text-blue-400 w-8 h-8" />
+                  </div>
+                  Extrato Financeiro Completo
+                </h2>
+                <p className="text-slate-400 mt-2 font-medium">Histórico integral de entradas e saídas do sistema</p>
+              </div>
+              <button 
+                onClick={() => setShowExtrato(false)}
+                className="w-14 h-14 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-all active:scale-95 shadow-xl"
+              >
+                <X size={28} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-4 space-y-4 pb-12">
+              {[...store.financialEntries].reverse().map((entry: any) => (
+                <div key={entry.id} className="flex items-center justify-between p-7 bg-slate-900/50 border border-slate-800 rounded-[32px] hover:bg-slate-800/40 transition-all group">
+                  <div className="flex items-center gap-7">
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${entry.type === FinanceType.INCOME ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                      {entry.type === FinanceType.INCOME ? <ArrowUpCircle size={28} /> : <ArrowDownCircle size={28} />}
+                    </div>
+                    <div>
+                      <p className="font-black text-white text-lg tracking-tight capitalize">{entry.description}</p>
+                      <p className="text-xs text-slate-500 uppercase font-black tracking-[0.2em] mt-2">{entry.category} • {new Date(entry.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
+                      {entry.notes && <p className="text-sm text-slate-400 mt-2 italic font-medium">"{entry.notes}"</p>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-10">
+                    <div className="text-right">
+                      <p className={`font-black text-2xl ${entry.type === FinanceType.INCOME ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {entry.type === FinanceType.INCOME ? '+' : '-'} R$ {entry.amount.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-slate-600 font-bold uppercase tracking-widest mt-2 bg-slate-800 px-3 py-1 rounded-full border border-slate-700/50 inline-block">{entry.paymentMethod}</p>
+                    </div>
+                    {store.currentUser.role === UserRole.ADMIN && (
+                      <button 
+                        onClick={() => {
+                          if (confirm('Tem certeza que deseja excluir esta movimentação?')) {
+                            store.deleteFinancialEntry(entry.id);
+                          }
+                        }}
+                        className="p-4 bg-rose-500/10 text-rose-500 rounded-2xl hover:bg-rose-500 hover:text-white transition-all shadow-lg active:scale-95"
+                        title="Excluir movimentação"
+                      >
+                        <Trash2 size={22} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {store.financialEntries.length === 0 && (
+                <div className="flex-1 flex flex-col items-center justify-center py-32 text-center">
+                  <div className="w-24 h-24 bg-slate-900 rounded-[32px] flex items-center justify-center text-slate-700 mb-6 border border-slate-800">
+                    <PieChart size={40} />
+                  </div>
+                  <p className="text-slate-500 font-bold text-xl italic capitalize tracking-tight">Nenhum registro financeiro encontrado.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -259,6 +259,23 @@ export const useStore = () => {
     }));
   };
 
+  const clearFinancialHistory = async () => {
+    if (state.currentUser?.role !== UserRole.ADMIN) return;
+    
+    // Clear in the service (one by one or if we had a bulk delete, but let's just clear the local state and sync it if possible)
+    // To be efficient with supabase without a custom bulk delete, we might just loop or implement a bulk delete in the service.
+    // Let's implement a simple clear in the state for now and assume the service can handle it if we add it.
+    
+    for (const entry of state.financialEntries) {
+      await financeiroService.deleteItem(entry.id);
+    }
+    
+    setState(prev => ({
+      ...prev,
+      financialEntries: []
+    }));
+  };
+
   const addMeeting = async (meeting: Omit<Meeting, 'id'>) => {
     const newMeeting = await agendaService.addItem(meeting);
     setState(prev => ({ ...prev, meetings: [...prev.meetings, newMeeting] }));
@@ -383,6 +400,15 @@ export const useStore = () => {
     return await pontoService.getEntriesByPeriod(userId, startDate, endDate);
   };
 
+  const deleteTimeClockEntry = async (id: string) => {
+    if (state.currentUser?.role !== UserRole.ADMIN) return;
+    await pontoService.deleteEntry(id);
+    setState(prev => ({
+      ...prev,
+      timeClockEntries: prev.timeClockEntries.filter(e => e.id !== id)
+    }));
+  };
+
   const getDashboardData = () => {
     const currentMonth = new Date().toISOString().slice(0, 7);
     const user = state.currentUser;
@@ -426,6 +452,7 @@ export const useStore = () => {
     deleteClient,
     addFinancialEntry,
     deleteFinancialEntry,
+    clearFinancialHistory,
     addMeeting,
     addFixedCost,
     updateFixedCostStatus,
@@ -434,6 +461,7 @@ export const useStore = () => {
     addTabulation,
     addTimeClockEntry,
     getTimeClockReport,
+    deleteTimeClockEntry,
     getDashboardData,
     loading
   };

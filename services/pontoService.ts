@@ -41,5 +41,14 @@ export const pontoService = {
 
     if (error) throw error;
     return data as TimeClockEntry[];
+  },
+
+  async deleteEntry(id: string) {
+    const { error } = await supabase
+      .from(TABLE_NAME)
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
   }
 };
