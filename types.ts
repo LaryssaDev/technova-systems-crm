@@ -23,7 +23,9 @@ export enum ClientStatus {
 
 export enum ServiceType {
   SITE = 'SITE',
-  SYSTEM = 'SISTEMA'
+  SYSTEM = 'SISTEMA',
+  TRAFFIC = 'TRÁFEGO PAGO',
+  CONTENT = 'GESTÃO DE CONTEÚDO'
 }
 
 export interface Client {
