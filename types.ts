@@ -16,6 +16,7 @@ export interface User {
 
 export enum ClientStatus {
   PROSPECT = 'PROSPECT',
+  NEW_LEAD = 'NOVO LEAD - ANUNCIO',
   MEETING = 'REUNIÃO',
   CLOSED = 'FECHADO',
   LOST = 'PERDIDO'

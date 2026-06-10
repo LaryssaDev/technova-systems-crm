@@ -230,6 +230,7 @@ const ClientList: React.FC<{ store: any }> = ({ store }) => {
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status da Jornada</label>
                   <select className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none" value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value as ClientStatus})}>
                     <option value={ClientStatus.PROSPECT}>Prospecção</option>
+                    <option value={ClientStatus.NEW_LEAD}>Novo Lead - Anuncio</option>
                     <option value={ClientStatus.MEETING}>Em Reunião</option>
                     <option value={ClientStatus.CLOSED}>Fechado (Ganho)</option>
                     <option value={ClientStatus.LOST}>Perdido (Lost)</option>

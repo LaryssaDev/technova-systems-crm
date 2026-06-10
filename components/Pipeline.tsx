@@ -5,6 +5,7 @@ import { Building2, User } from 'lucide-react';
 const Pipeline: React.FC<{ store: any }> = ({ store }) => {
   const columns = [
     { id: ClientStatus.PROSPECT, label: 'Prospect', icon: '🎯' },
+    { id: ClientStatus.NEW_LEAD, label: 'Novo Lead - Anuncio', icon: '📢' },
     { id: ClientStatus.MEETING, label: 'Reunião', icon: '📅' },
     { id: ClientStatus.CLOSED, label: 'Fechado', icon: '💰' },
     { id: ClientStatus.LOST, label: 'Perdido', icon: '❌' },
@@ -22,7 +23,7 @@ const Pipeline: React.FC<{ store: any }> = ({ store }) => {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 h-[calc(100vh-200px)] overflow-hidden">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 h-[calc(100vh-200px)] overflow-hidden">
       {columns.map((col) => (
         <div key={col.id} className="flex flex-col bg-slate-900/50 rounded-2xl border border-slate-800 h-full">
           <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900 rounded-t-2xl">
@@ -37,14 +38,14 @@ const Pipeline: React.FC<{ store: any }> = ({ store }) => {
 
           <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
             {getClientsByStatus(col.id).map((client: any) => (
-              <div 
-                key={client.id} 
+              <div
+                key={client.id}
                 className="group relative bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-sm hover:border-blue-500/50 transition-all cursor-default"
               >
                 <div className="flex justify-between items-start mb-2">
                   <h4 className="font-bold text-white text-sm line-clamp-1">{client.name}</h4>
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <select 
+                    <select
                       className="bg-slate-800 text-[10px] rounded p-1 outline-none border border-slate-700 text-slate-300"
                       value={client.status}
                       onChange={(e) => handleStatusChange(client.id, e.target.value as ClientStatus)}
