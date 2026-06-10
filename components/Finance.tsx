@@ -6,18 +6,9 @@ import { FINANCE_CATEGORIES } from '../constants';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import jsPDF from 'jspdf';
 
-// ─── Monthly Obligations ───────────────────────────────────────────────────────
-const MONTHLY_OBLIGATIONS = [
-  { name: 'Internet',     amount: 70   },
-  { name: 'Faculdade',    amount: 260  },
-  { name: 'Contador',     amount: 215  },
-  { name: 'Escritório',   amount: 63   },
-  { name: 'Água',         amount: 100  },
-  { name: 'Empréstimo 2', amount: 310  },
-  { name: 'Luz',          amount: 75   },
-];
+const PRO_LABORE_RATE_CONST = 0.24; // Renamed to avoid conflict below
 
-const PRO_LABORE_RATE = 0.24;
+const PRO_LABORE_RATE = PRO_LABORE_RATE_CONST;
 
 interface Partner {
   name: string;
@@ -32,7 +23,8 @@ const generatePDF = async (
   totalIncomes: number,
   totalExpenses: number,
   selectedMonth: string,
-  formatMonth: (m: string) => string
+  formatMonth: (m: string) => string,
+  fixedCosts: any[]
 ) => {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageW = 210;
@@ -145,13 +137,20 @@ const generatePDF = async (
   // ─────────── CALCULATIONS ─────────────────────────────────────────────────
   const resultado = totalIncomes - totalExpenses;
 
-  // Check obligations
-  const obligationResults = MONTHLY_OBLIGATIONS.map(ob => {
-    const found = expenses.some(e =>
-      e.description.toLowerCase().includes(ob.name.toLowerCase()) ||
-      (e.notes && e.notes.toLowerCase().includes(ob.name.toLowerCase()))
-    );
-    return { ...ob, paid: found };
+  // ── Dynamic obligations from fixedCosts register ──
+  const obligationResults = fixedCosts.map((fc: any) => {
+    const nameNorm = fc.description.toLowerCase();
+    const found = expenses.some((e: any) => {
+      const descNorm = e.description.toLowerCase();
+      const notesNorm = (e.notes || '').toLowerCase();
+      return (
+        descNorm.includes(nameNorm) ||
+        notesNorm.includes(nameNorm) ||
+        // also match entries created automatically by FixedCosts payment
+        descNorm.includes(`custo fixo: ${nameNorm}`)
+      );
+    });
+    return { name: fc.description, amount: fc.amount, category: fc.category || '', paid: found };
   });
 
   const totalUnpaidObligations = obligationResults
