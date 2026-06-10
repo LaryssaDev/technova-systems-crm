@@ -118,7 +118,7 @@ export const useStore = () => {
           let nextTarget = 7000;
           if (prevGoal) {
             const prevRevenue = supabaseEntries
-              .filter((e: any) => e.type === 'ENTRADA' && e.date.startsWith(prevMonth))
+              .filter((e: any) => e.type === 'ENTRADA' && e.category === 'Venda' && e.date.startsWith(prevMonth))
               .reduce((acc: number, curr: any) => acc + curr.amount, 0);
             
             if (prevRevenue >= prevGoal.targetValue) {
@@ -445,7 +445,7 @@ export const useStore = () => {
     const closed = filteredClients.filter(c => c.status === ClientStatus.CLOSED).length;
     
     const revenue = state.financialEntries
-      .filter(e => e.type === FinanceType.INCOME && e.date.startsWith(currentMonth))
+      .filter(e => e.type === FinanceType.INCOME && e.category === 'Venda' && e.date.startsWith(currentMonth))
       .reduce((acc, curr) => acc + curr.amount, 0);
 
     const goal = state.goals.find(g => g.month === currentMonth) || { targetValue: 7000 };
