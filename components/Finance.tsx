@@ -317,10 +317,10 @@ const generatePDF = async (
     doc.text(ob.name, colOb[0], y + 5.5);
     doc.text(currency(ob.amount), colOb[1], y + 5.5);
     if (ob.paid) {
-      setTxt(C.green); doc.setFont('helvetica','bold');
+      setTxt(C.green); doc.setFont('helvetica','bold'); doc.setFontSize(5.5);
       doc.text('✓ PAGO', colOb[2], y + 5.5);
     } else {
-      setTxt(C.red); doc.setFont('helvetica','bold');
+      setTxt(C.red); doc.setFont('helvetica','bold'); doc.setFontSize(5.5);
       doc.text('✗ NÃO PAGO / DESCONTADO AUTOMATICAMENTE', colOb[2], y + 5.5);
       totalUnpaidShown += ob.amount;
       countUnpaid++;
