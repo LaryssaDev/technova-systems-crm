@@ -300,7 +300,7 @@ const generatePDF = async (
   setFill(C.navy);
   doc.rect(margin, y, contentW, 8, 'F');
   setTxt(C.white); doc.setFontSize(8); doc.setFont('helvetica','bold');
-  const colOb = [margin + 4, margin + contentW * 0.5, margin + contentW * 0.75, margin + contentW - 4];
+  const colOb = [margin + 4, margin + contentW * 0.32, margin + contentW * 0.50, margin + contentW - 4];
   doc.text('Obrigação', colOb[0], y + 5.5);
   doc.text('Valor', colOb[1], y + 5.5);
   doc.text('Status', colOb[2], y + 5.5);
