@@ -6,16 +6,6 @@ import { FINANCE_CATEGORIES } from '../constants';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import jsPDF from 'jspdf';
 
-// ─── Monthly Obligations ───────────────────────────────────────────────────────
-const MONTHLY_OBLIGATIONS = [
-  { name: 'Internet',     amount: 70   },
-  { name: 'Faculdade',    amount: 260  },
-  { name: 'Contador',     amount: 215  },
-  { name: 'Escritório',   amount: 63   },
-  { name: 'Água',         amount: 100  },
-  { name: 'Empréstimo 2', amount: 310  },
-  { name: 'Luz',          amount: 75   },
-];
 
 const PRO_LABORE_RATE = 0.24;
 
@@ -32,7 +22,8 @@ const generatePDF = async (
   totalIncomes: number,
   totalExpenses: number,
   selectedMonth: string,
-  formatMonth: (m: string) => string
+  formatMonth: (m: string) => string,
+  fixedCosts: any[]
 ) => {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageW = 210;
@@ -146,12 +137,16 @@ const generatePDF = async (
   const resultado = totalIncomes - totalExpenses;
 
   // Check obligations
-  const obligationResults = MONTHLY_OBLIGATIONS.map(ob => {
+  const obligationResults = fixedCosts.map(cost => {
     const found = expenses.some(e =>
-      e.description.toLowerCase().includes(ob.name.toLowerCase()) ||
-      (e.notes && e.notes.toLowerCase().includes(ob.name.toLowerCase()))
+      e.description.toLowerCase().includes(cost.description.toLowerCase()) ||
+      (e.notes && e.notes.toLowerCase().includes(cost.description.toLowerCase()))
     );
-    return { ...ob, paid: found };
+    return {
+      name: cost.description,
+      amount: cost.amount,
+      paid: found
+    };
   });
 
   const totalUnpaidObligations = obligationResults
@@ -299,7 +294,7 @@ const generatePDF = async (
   }
 
   // ─────────── OBRIGAÇÕES MENSAIS ────────────────────────────────────────────
-  sectionTitle('OBRIGAÇÕES MENSAIS');
+  sectionTitle('5. VERIFICAÇÃO DE OBRIGAÇÕES MENSAIS');
 
   // Header
   setFill(C.navy);
@@ -312,6 +307,7 @@ const generatePDF = async (
   y += 9;
 
   let totalUnpaidShown = 0;
+  let countUnpaid = 0;
   obligationResults.forEach((ob, idx) => {
     ensureSpace(9);
     const bg: [number,number,number] = ob.paid ? [240,253,244] : [255,241,242];
@@ -322,23 +318,31 @@ const generatePDF = async (
     doc.text(currency(ob.amount), colOb[1], y + 5.5);
     if (ob.paid) {
       setTxt(C.green); doc.setFont('helvetica','bold');
-      doc.text('✓ Pago', colOb[2], y + 5.5);
+      doc.text('✓ PAGO', colOb[2], y + 5.5);
     } else {
       setTxt(C.red); doc.setFont('helvetica','bold');
-      doc.text('✗ Não pago / descontado', colOb[2], y + 5.5);
+      doc.text('✗ NÃO PAGO / DESCONTADO AUTOMATICAMENTE', colOb[2], y + 5.5);
       totalUnpaidShown += ob.amount;
+      countUnpaid++;
     }
     y += 8;
   });
 
   // Subtotal unpaid
-  ensureSpace(10);
+  ensureSpace(18);
+  setFill([255,241,242]);
+  doc.rect(margin, y, contentW, 8, 'F');
+  setTxt(C.red); doc.setFontSize(8.5); doc.setFont('helvetica','bold');
+  doc.text('Total de obrigações não pagas', margin + 4, y + 5.5);
+  doc.text(String(countUnpaid), margin + contentW - 4, y + 5.5, { align: 'right' });
+  y += 8;
+
   setFill([255,228,230]);
   doc.rect(margin, y, contentW, 9, 'F');
   setTxt(C.red); doc.setFontSize(9); doc.setFont('helvetica','bold');
-  doc.text('Total Descontado Automaticamente', colOb[0], y + 6.3);
+  doc.text('Valor descontado automaticamente', margin + 4, y + 6.3);
   doc.text(currency(totalUnpaidShown), margin + contentW - 4, y + 6.3, { align: 'right' });
-  y += 13;
+  y += 14;
 
   // ─────────── PRÓ-LABORE ───────────────────────────────────────────────────
   sectionTitle('CÁLCULO DO PRÓ-LABORE (24%)');
@@ -575,7 +579,7 @@ const Finance: React.FC<{ store: any }> = ({ store }) => {
     setPartnerError('');
     setGeneratingPDF(true);
     try {
-      await generatePDF(partners, incomes, expenses, totalIncomes, totalExpenses, selectedMonth, formatMonth);
+      await generatePDF(partners, incomes, expenses, totalIncomes, totalExpenses, selectedMonth, formatMonth, store.fixedCosts);
     } finally {
       setGeneratingPDF(false);
       setShowReportModal(false);
