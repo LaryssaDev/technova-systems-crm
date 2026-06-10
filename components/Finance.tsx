@@ -430,6 +430,49 @@ const generatePDF = async (
   doc.text(currency(afterProLabore), margin + contentW - 12, y + 9.5, { align: 'right' });
   y += 18;
 
+  // ─────────── ASSINATURA DA CEO ─────────────────────────────────────────────
+  ensureSpace(40);
+  y += 15;
+
+  try {
+    const sigUrl = 'https://i.imgur.com/EXt4S8C.jpeg';
+    const sigImg = new Image();
+    sigImg.crossOrigin = 'anonymous';
+    await new Promise<void>((resolve) => {
+      sigImg.onload = () => resolve();
+      sigImg.onerror = () => resolve();
+      sigImg.src = sigUrl;
+    });
+    if (sigImg.complete && sigImg.naturalWidth > 0) {
+      const canvas = document.createElement('canvas');
+      canvas.width = sigImg.naturalWidth;
+      canvas.height = sigImg.naturalHeight;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(sigImg, 0, 0);
+      const dataUrl = canvas.toDataURL('image/jpeg');
+      const sigW = 40;
+      const sigH = sigW * (sigImg.naturalHeight / sigImg.naturalWidth);
+      doc.addImage(dataUrl, 'JPEG', pageW / 2 - sigW / 2, y, sigW, sigH);
+      y += sigH + 2;
+    } else {
+      y += 20; // fallback spacing if image fails
+    }
+  } catch {}
+
+  setDraw(C.gray);
+  doc.setLineWidth(0.5);
+  doc.line(pageW / 2 - 35, y, pageW / 2 + 35, y);
+  y += 5;
+  setTxt(C.navy);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Laryssa Ferreira', pageW / 2, y, { align: 'center' });
+  y += 4;
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  setTxt(C.gray);
+  doc.text('CEO - TechNova Systems', pageW / 2, y, { align: 'center' });
+
   // ─────────── FOOTER ────────────────────────────────────────────────────────
   addFooter();
 
