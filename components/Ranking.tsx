@@ -23,6 +23,7 @@ const Ranking: React.FC<{ store: any }> = ({ store }) => {
     const sellerEntries = store.financialEntries.filter((e: any) => 
       e.responsibleId === seller.id && 
       e.type === 'ENTRADA' &&
+      e.category === 'Venda' &&
       e.date.startsWith(currentMonth)
     );
     

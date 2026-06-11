@@ -37,7 +37,7 @@ const GoalsHistory: React.FC<{ store: any }> = ({ store }) => {
         <div className="space-y-4">
           {[...store.goals].reverse().map((goal: any) => {
             const revenue = store.financialEntries
-              .filter((e: any) => e.type === 'ENTRADA' && e.date.startsWith(goal.month))
+              .filter((e: any) => e.type === 'ENTRADA' && e.category === 'Venda' && e.date.startsWith(goal.month))
               .reduce((acc: number, curr: any) => acc + curr.amount, 0);
             
             const isHit = revenue >= goal.targetValue;
